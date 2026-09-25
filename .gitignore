@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.db
+*.db-journal
+li_at.txt
+jsessionid.txt
+proxies_raw.txt
+engine/dashboard.html
+node_modules/
+.next/
+.env
+.env.local
