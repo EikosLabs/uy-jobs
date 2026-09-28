@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scraper de ofertas laborales Uruguay — Computrabajo UY + BuscoJobs.
+"""Scraper de ofertas laborales Uruguay — Computrabajo + BuscoJobs + LinkedIn + Indeed + Gallito.
 
 Solo stdlib. Guarda en SQLite (dedup por URL) y exporta a CSV.
 
@@ -17,6 +17,7 @@ import argparse
 import csv
 import html as htmlmod
 import json
+import os
 import re
 import sqlite3
 import ssl
@@ -25,6 +26,56 @@ import urllib.request
 from datetime import datetime, timezone
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+FLARE_URL = os.environ.get("FLARE_URL", "http://127.0.0.1:8191/v1")
+FLARE_SESSION = None
+# Proxy residencial via tunel (ej: ssh -R desde tu PC): http://127.0.0.1:8888
+UPSTREAM_PROXY = os.environ.get("UYJOBS_PROXY", "")
+FLARE_PROXY = {"url": UPSTREAM_PROXY} if UPSTREAM_PROXY else None
+
+
+def flare_cmd(payload, timeout=130):
+    try:
+        data = json.dumps(payload).encode()
+        req = urllib.request.Request(FLARE_URL, data=data,
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8", errors="ignore"))
+    except Exception as e:  # noqa: BLE001
+        print(f"  [flare WARN] {str(e)[:100]}")
+        return {}
+
+
+def flare_session_create():
+    global FLARE_SESSION
+    d = flare_cmd({"cmd": "sessions.create"})
+    sid = d.get("session")
+    if sid:
+        FLARE_SESSION = sid
+        print(f"  [flare] sesion {sid[:8]}…")
+    return sid
+
+
+def flare_session_destroy():
+    global FLARE_SESSION
+    if FLARE_SESSION:
+        flare_cmd({"cmd": "sessions.destroy", "session": FLARE_SESSION})
+        FLARE_SESSION = None
+
+
+def fetch_flare(url, timeout=200):
+    """Pasa por FlareSolverr (resuelve Cloudflare/Turnstile). Devuelve HTML o ''."""
+    payload = {"cmd": "request.get", "url": url, "maxTimeout": min(timeout, 240) * 1000}
+    if FLARE_SESSION:
+        payload["session"] = FLARE_SESSION
+    if FLARE_PROXY:
+        payload["proxy"] = FLARE_PROXY
+    d = flare_cmd(payload, timeout=timeout + 25)
+    sol = d.get("solution", {})
+    if d.get("status") == "ok" and sol.get("status") == 200 and sol.get("response"):
+        return sol["response"]
+    print(f"  [flare] sin solucion para {url[:70]}")
+    return ""
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS ofertas (
@@ -47,12 +98,17 @@ CREATE INDEX IF NOT EXISTS idx_fuente ON ofertas(fuente);
 """
 
 
-def fetch(url, retries=3, timeout=25, via_proxy=False):
-    if via_proxy and PROXY_POOL:
-        hit = fetch_via_pool(url, timeout)
+def fetch(url, retries=3, timeout=25, via_proxy=False, all_proxy=False):
+    if (via_proxy and PROXY_POOL) or (all_proxy and UPSTREAM_PROXY):
+        hit = fetch_via_pool(url, timeout, force_all=all_proxy)
         if hit:
             return hit
         # si todos los proxies fallan, sigue directo abajo
+    # tunel residencial: los 3 bloqueados salen siempre por ahi si esta configurado
+    if UPSTREAM_PROXY and any(h in url for h in ("gallito", "buscojobs", "indeed")):
+        hit = fetch_via_pool(url, timeout, force_all=True)
+        if hit:
+            return hit
     last = None
     for i in range(retries):
         try:
@@ -92,7 +148,18 @@ def next_proxy():
     return None
 
 
-def fetch_via_pool(url, timeout=25, tries=6):
+def fetch_via_pool(url, timeout=25, tries=6, force_all=False):
+    if force_all and UPSTREAM_PROXY:
+        try:
+            handler = urllib.request.ProxyHandler(
+                {"http": UPSTREAM_PROXY, "https": UPSTREAM_PROXY})
+            opener = urllib.request.build_opener(handler)
+            req = urllib.request.Request(url, headers=UA)
+            with opener.open(req, timeout=timeout) as r:
+                return r.read().decode("utf-8", errors="ignore")
+        except Exception as e:  # noqa: BLE001
+            print(f"  [WARN] tunel {url[:60]}: {str(e)[:80]}")
+            return ""
     for _ in range(min(tries, len(PROXY_POOL))):
         px = next_proxy()
         if not px:
@@ -292,6 +359,171 @@ def li_list(html):
     return out
 
 
+# ---------------- Indeed UY ----------------
+# Nota: Indeed/Yahoo protegen con Cloudflare; desde IPs de datacenter suele
+# devolver challenge (0 avisos, warn) sin romper la corrida.
+
+IN_QUERIES = ["trabajo", "empleo", "remoto", "vendedor", "administrativo"]
+IN_LIST = "https://uy.indeed.com/jobs?q={q}&l=Uruguay&sort=date&start={s}"
+IN_VIEW = "https://uy.indeed.com/viewjob?jk={jk}"
+
+
+def in_list(html):
+    out = []
+    for m in re.finditer(r"<td[^>]*class=\"[^\"]*resultContent[^\"]*\"[^>]*>(.*?)</td>", html, re.S | re.I):
+        b = m.group(1)
+        t = re.search(r"<h[23][^>]*class=\"[^\"]*jobTitle[^\"]*\"[^>]*>\s*<a[^>]+href=\"([^\"]+)\"[^>]*>(.*?)</a>", b, re.S)
+        if not t:
+            continue
+        href = t.group(1).replace("&amp;", "&")
+        titulo = clean(re.sub(r"<[^>]+>", " ", t.group(2)))
+        jkm = re.search(r"data-jk=\"([a-f0-9]{10,})\"", b) or re.search(r"[?&]jk=([a-f0-9]{10,})", href)
+        jid = jkm.group(1) if jkm else ""
+        url = IN_VIEW.format(jk=jid) if jid else (href if href.startswith("http") else "https://uy.indeed.com" + href)
+        c = re.search(r"data-testid=\"company-name\"[^>]*>(.*?)</(?:span|a|div)>", b, re.S)
+        loc = re.search(r"data-testid=\"text-location\"[^>]*>(.*?)</div>", b, re.S)
+        meta = [clean(x) for x in re.findall(r"<li[^>]*>(.*?)</li>", b, re.S)]
+        sal = next((x for x in meta if re.search(r"\$", x)), "")
+        tipo = " | ".join(x for x in meta if x and x != sal)
+        snip = re.search(r"<div[^>]*class=\"[^\"]*job-snippet[^\"]*\"[^>]*>(.*?)</div>", b, re.S)
+        fec = re.search(r"data-testid=\"myJobsStateDate\"[^>]*>(.*?)</span>", b, re.S)
+        out.append({
+            "fuente": "indeed",
+            "oferta_id": jid,
+            "titulo": titulo,
+            "empresa": clean(c.group(1)) if c else "",
+            "ubicacion": clean(loc.group(1)) if loc else "",
+            "salario": sal,
+            "contrato": tipo, "jornada": "",
+            "fecha_publicacion": clean(fec.group(1)) if fec else "",
+            "url": url, "descripcion": clean(snip.group(1)) if snip else "", "requisitos": "",
+        })
+    # fallback: enlaces /ver-oferta o viewjob sueltos
+    if not out:
+        for m in re.finditer(r"href=\"([^\"]*(?:viewjob\?jk=[a-f0-9]{10,}|/oferta[^\"]*))\"", html):
+            href = m.group(1)
+            jk = re.search(r"jk=([a-f0-9]{10,})", href)
+            url = IN_VIEW.format(jk=jk.group(1)) if jk else href
+            if url.startswith("/"):
+                url = "https://uy.indeed.com" + url
+            out.append({"fuente": "indeed", "oferta_id": jk.group(1) if jk else "",
+                        "titulo": "", "empresa": "", "ubicacion": "", "salario": "",
+                        "contrato": "", "jornada": "", "fecha_publicacion": "",
+                        "url": url, "descripcion": "", "requisitos": ""})
+    return out
+
+
+def in_detail(oferta):
+    h = fetch_flare(oferta["url"]) or fetch(oferta["url"])
+    if not h or "Security Check" in h or "Just a moment" in h:
+        return oferta
+    d = re.search(r"<div[^>]*id=\"jobDescriptionText\"[^>]*>(.*?)</div>\s*</div>", h, re.S)
+    if d:
+        oferta["descripcion"] = clean(d.group(1))[:6000]
+    if not oferta["titulo"]:
+        t = re.search(r"<h2[^>]*class=\"[^\"]*jobsearch-JobInfoHeader-title[^\"]*\"[^>]*>(.*?)</", h, re.S)
+        if t:
+            oferta["titulo"] = clean(t.group(1))
+    sal = re.search(r"<div[^>]*id=\"salaryInfoAndJobType\"[^>]*>(.*?)</div>", h, re.S)
+    if sal:
+        txt = clean(sal.group(1))
+        if re.search(r"\$", txt) and not oferta["salario"]:
+            oferta["salario"] = txt[:120]
+    return oferta
+
+
+# ---------------- Gallito (avisos clasificados UY) ----------------
+# Best-effort: el sitio usa Cloudflare; si responde, parsea tarjetas y JSON-LD.
+
+GA_LIST = "https://www.gallito.com.uy/avisos/trabajo{pg}"  # pg = "" | "?pag=N"
+GA_BASE = "https://www.gallito.com.uy"
+
+
+def ga_list(html):
+    out = []
+    if not html or "Just a moment" in html:
+        return out
+    for m in re.finditer(r"<article\b(.*?)</article>", html, re.S | re.I):
+        a = m.group(1)
+        link = re.search(r"<a[^>]+href=\"([^\"]+)\"[^>]*>(.*?)</a>", a, re.S)
+        if not link:
+            continue
+        url, titulo = link.group(1), clean(link.group(2))
+        if url.startswith("/"):
+            url = GA_BASE + url
+        if "trabajo" not in url.lower() and "aviso" not in url.lower():
+            pass  # igual lo aceptamos: la seccion ya es trabajo
+        emp = re.search(r"<(?:span|p)[^>]*class=\"[^\"]*(?:empresa|vendedor|seller)[^\"]*\"[^>]*>(.*?)</", a, re.S | re.I)
+        ubi = re.search(r"<(?:span|p)[^>]*class=\"[^\"]*(?:ubicacion|zona|departamento|location)[^\"]*\"[^>]*>(.*?)</", a, re.S | re.I)
+        pre = re.search(r"<(?:span|p|div)[^>]*class=\"[^\"]*(?:precio|salario|price)[^\"]*\"[^>]*>(.*?)</", a, re.S | re.I)
+        oid = re.search(r"(\d{4,})", url)
+        out.append({
+            "fuente": "gallito",
+            "oferta_id": oid.group(1) if oid else "",
+            "titulo": titulo,
+            "empresa": clean(emp.group(1)) if emp else "",
+            "ubicacion": clean(ubi.group(1)) if ubi else "",
+            "salario": clean(pre.group(1)) if pre else "",
+            "contrato": "", "jornada": "",
+            "fecha_publicacion": "",
+            "url": url.split("#")[0], "descripcion": "", "requisitos": "",
+        })
+    # fallback JSON-LD ItemList
+    if not out:
+        for ld in re.findall(r"<script[^>]*type=\"application/ld\+json\"[^>]*>(.*?)</script>", html, re.S):
+            try:
+                j = json.loads(ld)
+            except json.JSONDecodeError:
+                continue
+            items = []
+            if isinstance(j, dict) and j.get("@type") == "ItemList":
+                items = j.get("itemListElement", [])
+            for it in items:
+                it = it.get("item", it) if isinstance(it, dict) else it
+                if not isinstance(it, dict) or not it.get("url"):
+                    continue
+                url = it["url"]
+                if url.startswith("/"):
+                    url = GA_BASE + url
+                out.append({"fuente": "gallito", "oferta_id": "",
+                            "titulo": clean(str(it.get("name", ""))), "empresa": "",
+                            "ubicacion": "", "salario": "", "contrato": "", "jornada": "",
+                            "fecha_publicacion": "", "url": url, "descripcion": "", "requisitos": ""})
+    return out
+
+
+def ga_detail(oferta):
+    h = fetch_flare(oferta["url"]) or fetch(oferta["url"])
+    if not h or "Just a moment" in h:
+        return oferta
+    for ld in re.findall(r"<script[^>]*type=\"application/ld\+json\"[^>]*>(.*?)</script>", h, re.S):
+        try:
+            j = json.loads(ld)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(j, dict) and j.get("@type") == "JobPosting":
+            if j.get("description"):
+                oferta["descripcion"] = clean(j["description"])[:6000]
+            if j.get("title") and not oferta["titulo"]:
+                oferta["titulo"] = clean(j["title"])
+            org = j.get("hiringOrganization")
+            if isinstance(org, dict) and org.get("name") and not oferta["empresa"]:
+                oferta["empresa"] = clean(org["name"])
+            loc = j.get("jobLocation")
+            if isinstance(loc, dict):
+                addr = loc.get("address", loc)
+                if isinstance(addr, dict):
+                    partes = [addr.get("addressLocality", ""), addr.get("addressRegion", "")]
+                    if any(partes) and not oferta["ubicacion"]:
+                        oferta["ubicacion"] = ", ".join(p for p in partes if p)
+            break
+    if not oferta["descripcion"]:
+        d = re.search(r"<div[^>]*class=\"[^\"]*(?:descripcion|description|aviso-detalle)[^\"]*\"[^>]*>(.*?)</div>", h, re.S | re.I)
+        if d:
+            oferta["descripcion"] = clean(d.group(1))[:6000]
+    return oferta
+
+
 def li_detail(oferta):
     h = fetch(LI_DETAIL.format(jid=oferta["oferta_id"]), via_proxy=True)
     if not h:
@@ -359,35 +591,101 @@ def export_csv(db_path, csv_path):
     return len(rows)
 
 
-def scrape(fuente, paginas, detalle, sin_detalle, delay):
+def _is_known(url, seen, known):
+    return url in seen or (known is not None and url in known)
+
+
+def _page_new_count(rows, seen, known):
+    return sum(1 for o in rows if not _is_known(o["url"], seen, known))
+
+
+def scrape(fuente, paginas, detalle, sin_detalle, delay, use_flare=True, known=None):
+    """Scrape incremental: known = {url: True si ya tiene descripcion}.
+    Corta el paginado tras 2 paginas seguidas sin URLs nuevas y no
+    re-descarga detalles ya guardados."""
     todo = []
+    if use_flare and fuente in ("todas", "indeed", "gallito"):
+        flare_session_create()
     if fuente in ("todas", "computrabajo"):
         print("[computrabajo] listados...")
+        stale = 0
         for p in range(1, paginas + 1):
             h = fetch(CT_LIST.format(p=p))
             rows = ct_list(h) if h else []
-            print(f"  pag {p}: {len(rows)} avisos")
+            n_new = _page_new_count(rows, {o["url"] for o in todo}, known)
+            print(f"  pag {p}: {len(rows)} avisos ({n_new} nuevos)")
             todo.extend(rows)
+            stale = stale + 1 if n_new == 0 and rows else 0
+            if stale >= 2:
+                print("  (corte temprano: sin novedades)")
+                break
             time.sleep(delay)
     if fuente in ("todas", "buscojobs"):
         print("[buscojobs] listados...")
+        stale = 0
         for p in range(1, paginas + 1):
             pg = "" if p == 1 else f"/{p}"
             h = fetch(BJ_LIST.format(pg=pg))
             rows = bj_list(h) if h else []
-            print(f"  pag {p}: {len(rows)} avisos")
+            n_new = _page_new_count(rows, {o["url"] for o in todo}, known)
+            print(f"  pag {p}: {len(rows)} avisos ({n_new} nuevos)")
             todo.extend(rows)
+            stale = stale + 1 if n_new == 0 and rows else 0
+            if stale >= 2:
+                print("  (corte temprano: sin novedades)")
+                break
             time.sleep(delay)
     if fuente in ("todas", "linkedin"):
         print("[linkedin] listados...")
+        stale = 0
         for p in range(1, paginas + 1):
             h = fetch(LI_LIST.format(s=(p - 1) * 10), via_proxy=True)
             rows = li_list(h) if h else []
-            print(f"  pag {p}: {len(rows)} avisos")
             if not rows:
                 print("  (corte: posible rate limit)")
                 break
+            n_new = _page_new_count(rows, {o["url"] for o in todo}, known)
+            print(f"  pag {p}: {len(rows)} avisos ({n_new} nuevos)")
             todo.extend(rows)
+            stale = stale + 1 if n_new == 0 else 0
+            if stale >= 2:
+                print("  (corte temprano: sin novedades)")
+                break
+            time.sleep(delay)
+    if fuente in ("todas", "indeed"):
+        print("[indeed] listados (via FlareSolverr)...")
+        for q in IN_QUERIES if fuente == "todas" else ["trabajo"]:
+            stale = 0
+            for p in range(1, min(paginas, 4) + 1):
+                h = fetch_flare(IN_LIST.format(q=q, s=(p - 1) * 10)) or fetch(IN_LIST.format(q=q, s=(p - 1) * 10))
+                rows = in_list(h) if h else []
+                n_new = _page_new_count(rows, {o["url"] for o in todo}, known)
+                print(f"  q={q} pag {p}: {len(rows)} avisos ({n_new} nuevos)")
+                if not rows:
+                    break
+                todo.extend(rows)
+                stale = stale + 1 if n_new == 0 else 0
+                if stale >= 2:
+                    print("  (corte temprano: sin novedades)")
+                    break
+                time.sleep(delay)
+    if fuente in ("todas", "gallito"):
+        print("[gallito] listados (via FlareSolverr)...")
+        stale = 0
+        for p in range(1, paginas + 1):
+            pg = "" if p == 1 else f"?pag={p}"
+            h = fetch_flare(GA_LIST.format(pg=pg)) or fetch(GA_LIST.format(pg=pg))
+            rows = ga_list(h) if h else []
+            n_new = _page_new_count(rows, {o["url"] for o in todo}, known)
+            print(f"  pag {p}: {len(rows)} avisos ({n_new} nuevos)")
+            if not rows:
+                print("  (corte: sin resultados o bloqueo)")
+                break
+            todo.extend(rows)
+            stale = stale + 1 if n_new == 0 else 0
+            if stale >= 2:
+                print("  (corte temprano: sin novedades)")
+                break
             time.sleep(delay)
     # dedup en memoria por url
     seen, uniq = set(), []
@@ -397,25 +695,33 @@ def scrape(fuente, paginas, detalle, sin_detalle, delay):
             uniq.append(o)
     print(f"total listados: {len(todo)} -> unicos: {len(uniq)}")
     if not sin_detalle:
-        n = len(uniq) if detalle <= 0 else min(detalle, len(uniq))
-        print(f"[detalle] {n} avisos...")
-        for i, o in enumerate(uniq[:n], 1):
+        # solo pendientes: nuevas o conocidas sin descripcion (las completas se saltean)
+        pendientes = [o for o in uniq if not (known and known.get(o["url"], False))]
+        ya = len(uniq) - len(pendientes)
+        n = len(pendientes) if detalle <= 0 else min(detalle, len(pendientes))
+        print(f"[detalle] {n} pendientes ({ya} ya guardados, se saltean)...")
+        for i, o in enumerate(pendientes[:n], 1):
             if o["fuente"] == "computrabajo":
                 ct_detail(o)
             elif o["fuente"] == "linkedin":
                 li_detail(o)
+            elif o["fuente"] == "indeed":
+                in_detail(o)
+            elif o["fuente"] == "gallito":
+                ga_detail(o)
             else:
                 bj_detail(o)
             if i % 10 == 0:
                 print(f"  {i}/{n}")
             time.sleep(delay)
+    flare_session_destroy()
     return uniq
 
 
 def main():
     ap = argparse.ArgumentParser(description="Scraper ofertas laborales Uruguay")
     ap.add_argument("--fuente", default="todas",
-                    choices=["todas", "computrabajo", "buscojobs", "linkedin"])
+                    choices=["todas", "computrabajo", "buscojobs", "linkedin", "indeed", "gallito"])
     ap.add_argument("--paginas", type=int, default=3)
     ap.add_argument("--detalle", type=int, default=0,
                     help="max avisos con descripcion completa por corrida (0=todos)")

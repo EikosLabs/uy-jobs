@@ -1,163 +1,141 @@
 import Link from "next/link";
-import { CATEGORIAS, FUENTES, MODALIDADES, supabase, type Oferta } from "@/lib/supabase";
+import { getPool } from "@/lib/db";
+import { CATEGORIAS } from "@/lib/supabase";
+import { Logo, SiteFooter } from "@/components/ui";
 
-const PAGE_SIZE = 50;
+export const dynamic = "force-dynamic";
 
-type Params = { [k: string]: string | string[] | undefined };
-
-function str(p: Params, k: string): string {
-  const v = p[k];
-  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
-}
-
-function href(base: Params, overrides: Record<string, string>): string {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries({ ...base, ...overrides })) {
-    if (typeof v === "string" && v) q.set(k, v);
-  }
-  const s = q.toString();
-  return s ? `/?${s}` : "/";
-}
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<Params>;
-}) {
-  const p = await searchParams;
-  const q = str(p, "q").slice(0, 120);
-  const categoria = str(p, "categoria");
-  const modalidad = str(p, "modalidad");
-  const fuente = str(p, "fuente");
-  const page = Math.max(1, parseInt(str(p, "page") || "1", 10) || 1);
-
-  const sb = supabase();
-  if (!sb) {
-    return (
-      <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-        <h1 className="text-3xl font-bold">uy-jobs</h1>
-        <p className="mt-4 text-zinc-400">
-          Falta configurar Supabase. Copiá <code>.env.example</code> a{" "}
-          <code>.env.local</code> con <code>NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
-          <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, corré{" "}
-          <code>supabase/schema.sql</code> y el seed{" "}
-          <code>python engine/seed_supabase.py</code>.
-        </p>
-      </main>
-    );
+export default async function Landing() {
+  const pool = getPool();
+  let total = 0;
+  let remotos = 0;
+  let topCats: { categoria: string; n: number }[] = [];
+  try {
+    if (pool) {
+      total = (await pool.query("SELECT count(*)::int AS n FROM ofertas")).rows[0]?.n ?? 0;
+      remotos = (await pool.query("SELECT count(*)::int AS n FROM ofertas WHERE modalidad = 'remoto'")).rows[0]?.n ?? 0;
+      topCats = (await pool.query("SELECT categoria, count(*)::int AS n FROM ofertas GROUP BY 1 ORDER BY 2 DESC LIMIT 6")).rows;
+    }
+  } catch {
+    /* la landing vive sin DB */
   }
 
-  let query = sb.from("ofertas").select("*", { count: "exact" });
-  if (q) {
-    const esc = q.replace(/[%_]/g, "");
-    query = query.or(
-      `titulo.ilike.%${esc}%,empresa.ilike.%${esc}%,descripcion.ilike.%${esc}%`
-    );
-  }
-  if (categoria) query = query.eq("categoria", categoria);
-  if (modalidad) query = query.eq("modalidad", modalidad);
-  if (fuente) query = query.eq("fuente", fuente);
-
-  const from = (page - 1) * PAGE_SIZE;
-  const { data, count, error } = await query
-    .order("fecha_scrapeo", { ascending: false })
-    .range(from, from + PAGE_SIZE - 1);
-
-  const ofertas = (data ?? []) as Oferta[];
-  const total = count ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const counts: Record<string, number> = { todas: total };
-  for (const f of FUENTES) {
-    const r = await sb.from("ofertas").select("id", { count: "exact", head: true }).eq("fuente", f);
-    counts[f] = r.count ?? 0;
-  }
-
-  const flat: Params = { q, categoria, modalidad, fuente };
+  const fmt = (n: number) => (n > 0 ? n.toLocaleString("es-UY") : "…");
+  const cats = topCats.length ? topCats : CATEGORIAS.slice(0, 6).map((c) => ({ categoria: c, n: 0 }));
+  const marquee = ["tecnología", "ventas", "remoto", "administración", "logística", "oficios", "salud", "marketing"];
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-      <header className="sticky top-0 z-10 -mx-4 border-b border-zinc-800 bg-zinc-950/90 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4">
-          <Link href="/" className="text-xl font-bold tracking-tight">
-            uy-jobs <span className="text-sm font-normal text-zinc-500">UY</span>
+    <main className="bg-scene min-h-screen">
+      {/* NAV */}
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
+        <Logo />
+        <div className="flex gap-2 text-sm font-bold">
+          <Link href="/login" className="rounded-xl border-2 border-[#0a2156] bg-white px-4 py-2 transition hover:bg-stone-100">
+            Entrar
           </Link>
-          <form action="/" method="get" className="flex flex-1 flex-wrap gap-2">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Buscar: python, vendedor, remoto…"
-              className="min-w-40 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm outline-none placeholder:text-zinc-500 focus:border-emerald-500"
-            />
-            <select name="categoria" defaultValue={categoria} className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-2 text-sm">
-              <option value="">Todas las categorías</option>
-              {CATEGORIAS.map((c) => (
-                <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
-              ))}
-            </select>
-            <select name="modalidad" defaultValue={modalidad} className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-2 text-sm">
-              <option value="">Toda modalidad</option>
-              {MODALIDADES.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-            <select name="fuente" defaultValue={fuente} className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-2 text-sm">
-              <option value="">Toda fuente</option>
-              {FUENTES.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-            <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold hover:bg-emerald-500">
-              Buscar
-            </button>
-          </form>
+          <Link href="/register" className="btn-accent px-4 py-2">
+            Crear cuenta
+          </Link>
         </div>
-        <div className="mx-auto mt-2 flex max-w-6xl gap-2 text-xs text-zinc-400">
-          <span className="rounded-full bg-zinc-800 px-3 py-1">total: {total}</span>
-          {FUENTES.map((f) => (
-            <Link key={f} href={href(flat, { fuente: f, page: "" })} className="rounded-full bg-zinc-800 px-3 py-1 hover:bg-zinc-700">
-              {f}: {counts[f] ?? "…"}
+      </nav>
+
+      {/* POSTER HERO */}
+      <section className="mx-auto max-w-4xl px-4 pt-10 text-center sm:px-6 sm:pt-16">
+        <p className="inline-flex rotate-[-1deg] items-center gap-2 rounded-full border-2 border-[#0a2156] bg-[#fcd116] px-4 py-1.5 text-xs font-bold uppercase tracking-wide">
+          {fmt(total)} ofertas activas · se actualiza a diario
+        </p>
+        <h1 className="mx-auto mt-6 max-w-3xl font-[var(--font-display)] text-5xl font-bold leading-[1.02] tracking-tight sm:text-7xl">
+          El trabajo que buscás{" "}
+          <span className="relative inline-block">
+            <span className="relative z-10">está acá</span>
+            <svg className="absolute -bottom-2 left-0 z-0 w-full" height="14" viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden>
+              <path d="M2 10 C 60 2, 140 2, 198 8" stroke="#0038a8" strokeWidth="7" fill="none" strokeLinecap="round" />
+            </svg>
+          </span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg font-medium leading-relaxed text-stone-600">
+          Juntamos Computrabajo, BuscoJobs y LinkedIn en un solo lugar, los
+          ordenamos por rubro y te avisamos lo nuevo cada día.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/register" className="btn-primary px-8 py-3.5 text-base">
+            Ver ofertas gratis →
+          </Link>
+          <Link href="/login" className="rounded-2xl border-2 border-[#0a2156] bg-white px-8 py-3.5 font-bold transition hover:bg-stone-100">
+            Ya tengo cuenta
+          </Link>
+        </div>
+      </section>
+
+      {/* MARQUEE */}
+      <div className="mt-14 rotate-[-1deg] border-y-2 border-[#0a2156] bg-[#0a2156] py-3" aria-hidden>
+        <div className="marquee-track gap-8 text-sm font-bold uppercase tracking-widest text-white">
+          {[...marquee, ...marquee].map((m, i) => (
+            <span key={i} className="flex items-center gap-8 whitespace-nowrap">
+              {m} <span className="text-[#0038a8]">✦</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* STATS */}
+      <section className="mx-auto grid max-w-6xl grid-cols-3 gap-3 px-4 pt-12 sm:gap-4 sm:px-6">
+        {[
+          [fmt(total), "ofertas activas", "bg-[#dbeafe]"],
+          [fmt(remotos), "remotas", "bg-[#bae6fd]"],
+          ["3", "fuentes", "bg-[#fde68a]"],
+        ].map(([n, label, bg]) => (
+          <div key={label} className={`card-pop rounded-3xl px-4 py-6 text-center sm:py-8 ${bg}`}>
+            <div className="font-[var(--font-display)] text-3xl font-bold sm:text-5xl">{n}</div>
+            <div className="mt-1 text-xs font-bold uppercase tracking-widest">{label}</div>
+          </div>
+        ))}
+      </section>
+
+      {/* MURO DE RUBROS */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <p className="text-center text-xs font-bold uppercase tracking-widest text-[#0038a8]">Explorá por rubro</p>
+        <h2 className="mx-auto mt-2 max-w-xl text-center font-[var(--font-display)] text-3xl font-bold sm:text-4xl">
+          ¿En qué querés trabajar?
+        </h2>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {cats.map((t, i) => (
+            <Link key={t.categoria} href="/register"
+              className={`card-pop rounded-full px-6 py-3.5 font-[var(--font-display)] font-bold ${i % 2 ? "rotate-1" : "-rotate-1"}`}>
+              {(t.categoria || "otros").replace(/_/g, " ")}{" "}
+              <span className="text-sm font-bold text-[#0a2156]/60">{t.n > 0 ? t.n.toLocaleString("es-UY") : ""}</span>
             </Link>
           ))}
         </div>
-      </header>
+      </section>
 
-      {error && <p className="mt-8 text-red-400">Error: {error.message}</p>}
+      {/* PASOS */}
+      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+        <div className="card-pop rounded-[2rem] bg-[#0a2156] p-8 text-white sm:p-12" style={{ borderColor: "#0a2156" }}>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#fcd116]">Cómo funciona</p>
+          <h2 className="mt-2 max-w-xl font-[var(--font-display)] text-3xl font-bold">
+            Del caos de portales a tu próxima entrevista
+          </h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {[
+              ["01", "Creá tu cuenta", "Gratis en 30 segundos. Solo nombre, email y teléfono.", "bg-[#fcd116] text-[#0a2156]"],
+              ["02", "Filtrá a tu medida", "Por rubro, modalidad, fuente y palabra clave.", "bg-[#7dd3fc] text-[#0c4a6e]"],
+              ["03", "Postulate directo", "Te llevamos al aviso original en un clic.", "bg-[#fcd116] text-[#0a2156]"],
+            ].map(([n, t, d, badge]) => (
+              <div key={n} className="rounded-3xl border-2 border-white/15 bg-white/5 p-6">
+                <span className={`inline-block rounded-xl px-3 py-1 font-[var(--font-display)] text-sm font-bold ${badge}`}>{n}</span>
+                <p className="mt-3 font-[var(--font-display)] text-lg font-bold">{t}</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-300">{d}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/register" className="mt-8 inline-block rounded-2xl bg-[#0038a8] px-8 py-3.5 font-bold text-white transition hover:bg-[#2f6fed]">
+            Empezar ahora →
+          </Link>
+        </div>
+      </section>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        {ofertas.map((o) => (
-          <article key={o.id} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
-            <div className="flex flex-wrap gap-1 text-[11px]">
-              <span className="rounded-full bg-emerald-900 px-2 py-0.5 text-emerald-300">{o.categoria ?? "otros"}</span>
-              {o.modalidad && <span className="rounded-full bg-sky-900 px-2 py-0.5 text-sky-300">{o.modalidad}</span>}
-              <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-zinc-400">{o.fuente}</span>
-              {o.seniority && <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-zinc-400">{o.seniority}</span>}
-            </div>
-            <h2 className="mt-2 font-semibold leading-snug">
-              <a href={o.url} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400">
-                {o.titulo || "(sin título)"}
-              </a>
-            </h2>
-            <p className="mt-1 text-sm text-zinc-400">
-              {[o.empresa, o.ubicacion].filter(Boolean).join(" · ")}
-              {o.salario_num ? ` · ${o.moneda} ${Number(o.salario_num).toLocaleString("es-UY")}` : o.salario ? ` · ${o.salario}` : ""}
-            </p>
-            {o.descripcion && <p className="mt-2 line-clamp-3 text-sm text-zinc-500">{o.descripcion.slice(0, 280)}</p>}
-          </article>
-        ))}
-      </div>
-
-      {ofertas.length === 0 && !error && (
-        <p className="mt-12 text-center text-zinc-500">Sin resultados. Probá con otra búsqueda.</p>
-      )}
-
-      {pages > 1 && (
-        <nav className="mt-8 flex items-center justify-center gap-3 text-sm">
-          {page > 1 && <Link href={href(flat, { page: String(page - 1) })} className="rounded-lg border border-zinc-700 px-3 py-1.5 hover:bg-zinc-800">← anterior</Link>}
-          <span className="text-zinc-400">{page} / {pages}</span>
-          {page < pages && <Link href={href(flat, { page: String(page + 1) })} className="rounded-lg border border-zinc-700 px-3 py-1.5 hover:bg-zinc-800">siguiente →</Link>}
-        </nav>
-      )}
+      <SiteFooter />
     </main>
   );
 }

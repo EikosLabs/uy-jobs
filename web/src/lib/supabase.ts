@@ -1,5 +1,3 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
 export type Oferta = {
   id: number;
   fuente: string;
@@ -21,17 +19,9 @@ export type Oferta = {
   seniority: string | null;
   salario_num: number | null;
   moneda: string | null;
+  experiencia_min: number | null;
+  departamento: string | null;
 };
-
-let client: SupabaseClient | null = null;
-
-export function supabase(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  if (!client) client = createClient(url, key);
-  return client;
-}
 
 export const CATEGORIAS = [
   "tecnologia", "ventas", "administracion", "logistica", "atencion_cliente",
@@ -40,4 +30,12 @@ export const CATEGORIAS = [
 ];
 
 export const MODALIDADES = ["remoto", "hibrido"];
-export const FUENTES = ["linkedin", "computrabajo", "buscojobs"];
+export const FUENTES = ["linkedin", "computrabajo", "buscojobs", "indeed", "gallito"];
+export const SENIORITIES = ["estudiante", "junior", "pasantia", "senior", "lead"];
+
+export const DEPARTAMENTOS = [
+  "Artigas", "Canelones", "Cerro Largo", "Colonia", "Durazno",
+  "Flores", "Florida", "Lavalleja", "Maldonado", "Montevideo",
+  "Paysandú", "Río Negro", "Rivera", "Rocha", "Salto",
+  "San José", "Soriano", "Tacuarembó", "Treinta y Tres",
+];
