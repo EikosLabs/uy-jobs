@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import { getPool } from "@/lib/db";
 import { createSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/dal";
+import { safeNext } from "@/lib/next";
 
 type GoogleUser = {
   sub: string;
@@ -106,7 +107,9 @@ export async function GET(req: Request) {
   } catch {
     /* analytics nunca rompe auth */
   }
-  const res = NextResponse.redirect(new URL("/ofertas", base));
+  const next = safeNext(/(?:^|;\s*)g_next=([^;]+)/.exec(req.headers.get("cookie") ?? "")?.[1]);
+  const res = NextResponse.redirect(new URL(next || "/ofertas", base));
   res.cookies.delete("g_state");
+  res.cookies.delete("g_next");
   return res;
 }

@@ -6,17 +6,17 @@ import { useActionState } from "react";
 import { login } from "@/actions/auth";
 import { track } from "@/lib/track";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string | null }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(login, undefined);
 
   useEffect(() => {
     if (state?.ok) {
       track("login_completed", { method: "email" });
-      router.push("/ofertas");
+      router.push(next || "/ofertas");
       router.refresh();
     }
-  }, [state, router]);
+  }, [state, router, next]);
 
   return (
     <form action={action} className="space-y-4">

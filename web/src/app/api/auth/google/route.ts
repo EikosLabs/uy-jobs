@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
+import { safeNext } from "@/lib/next";
 
 /** Inicia el flujo OAuth2 con Google. */
 export async function GET(req: Request) {
@@ -34,5 +35,15 @@ export async function GET(req: Request) {
     path: "/",
     maxAge: 600,
   });
+  const next = safeNext(new URL(req.url).searchParams.get("next"));
+  if (next) {
+    res.cookies.set("g_next", next, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 600,
+    });
+  }
   return res;
 }

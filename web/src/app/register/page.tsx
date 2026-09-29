@@ -9,13 +9,17 @@ import { CATEGORIAS, DEPARTAMENTOS } from "@/lib/supabase";
 import { AuthShell } from "@/components/ui";
 import { GoogleButton } from "@/components/GoogleButton";
 import { catLabel } from "@/lib/format";
+import { safeNext } from "@/lib/next";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [state, action, pending] = useActionState(signup, undefined);
   const [ofertas, setOfertas] = useState<number | null>(null);
+  const [loginHref, setLoginHref] = useState("/login");
 
   useEffect(() => {
+    const next = safeNext(new URLSearchParams(window.location.search).get("next"));
+    if (next) setLoginHref(`/login?next=${encodeURIComponent(next)}`);
     fetch("/api/public/stats")
       .then((r) => r.json())
       .then((d) => setOfertas(typeof d.total === "number" ? d.total : null))
@@ -24,7 +28,8 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (state?.ok) {
-      router.push("/ofertas");
+      const next = safeNext(new URLSearchParams(window.location.search).get("next"));
+      router.push(next || "/ofertas");
       router.refresh();
     }
   }, [state, router]);
@@ -84,7 +89,7 @@ export default function RegisterPage() {
           <><strong>{ofertas.toLocaleString("es-UY")}</strong> ofertas activas te esperan. </>
         ) : null}
         ¿Ya tenés cuenta?{" "}
-        <Link href="/login" className="font-semibold text-[#0038a8] hover:text-[#0038a8]">
+        <Link href={loginHref} className="font-semibold text-[#0038a8] hover:text-[#0038a8]">
           Entrá
         </Link>
       </p>

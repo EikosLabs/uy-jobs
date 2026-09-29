@@ -40,18 +40,26 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
     .wrap { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
     .skip { position: absolute; left: -999px; }
     .skip:focus { left: 1rem; top: 1rem; z-index: 70; background: var(--accent); color: #fff; padding: .5rem 1rem; border-radius: .5rem; font-weight: 700; font-size: .875rem; }
-    /* Isla flotante */
-    .island { position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 40;
-      display: flex; align-items: center; gap: .25rem; background: rgba(255,255,255,.82); backdrop-filter: blur(24px);
-      border: 1px solid var(--line); border-radius: 999px; padding: .4rem .4rem .4rem .9rem;
-      box-shadow: 0 18px 44px -26px rgba(28,25,23,.45); max-width: calc(100vw - 2rem); }
-    .brand { display: flex; align-items: center; gap: .5rem; font-weight: 800; font-size: 1.125rem; color: var(--ink); margin-right: .5rem; }
-    .brand img { width: 2rem; height: 2rem; border-radius: .6rem; border: 1px solid var(--line); }
-    .brand b { color: var(--accent); }
-    .island nav { display: none; gap: .25rem; }
-    @media (min-width: 860px) { .island nav { display: flex; } }
-    .island nav a { padding: .5rem .75rem; border-radius: 999px; font-size: .875rem; font-weight: 600; color: var(--mut); transition: all 250ms var(--ease); }
-    .btn { display: inline-block; border-radius: 12px; font-weight: 700; font-size: 1rem; padding: 8px 12px; transition: all 250ms var(--ease); }
+    /* Barra superior: misma que la app (components/AppNav.tsx) */
+    .topbar { position: sticky; top: 0; z-index: 40; background: #fff; border-bottom: 1px solid var(--line); }
+    .topbar .in { max-width: 72rem; margin: 0 auto; height: 4rem; padding: 0 1rem; display: flex; align-items: center; gap: .25rem; }
+    @media (min-width: 640px) { .topbar .in { padding: 0 1.5rem; } }
+    .brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: 1.25rem; letter-spacing: -0.01em; color: var(--ink); }
+    .brand img { width: 2.25rem; height: 2.25rem; border-radius: .75rem; border: 1px solid var(--line); object-fit: cover; }
+    .brand b { color: var(--accent); font-weight: 700; }
+    .topbar nav { display: none; margin-left: 1rem; gap: .25rem; }
+    @media (min-width: 860px) { .topbar nav { display: flex; } }
+    .topbar nav a { padding: .5rem .75rem; border-radius: .5rem; font-size: .875rem; font-weight: 600; color: #57534e; transition: background 200ms; }
+    .topbar nav a:hover { background: #f5f5f4; color: #0a2156; }
+    .topbar .acts { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+    .topbar .enter { padding: .5rem .75rem; border-radius: .5rem; font-size: .875rem; font-weight: 600; color: #57534e; }
+    .topbar .enter:hover { background: #f5f5f4; }
+    .topbar .hello { display: none; border-radius: 999px; background: rgba(0,56,168,.1); color: var(--accent); padding: .375rem .75rem; font-size: .75rem; font-weight: 700; }
+    .topbar .cta-top { border-radius: .5rem; background: var(--accent); color: #fff; padding: .5rem 1rem; font-size: .875rem; font-weight: 700; }
+    .topbar .cta-top:hover { background: #002d87; }
+    body.logged .topbar .enter { display: none; }
+    @media (min-width: 640px) { body.logged .topbar .hello { display: inline-block; } }
+    .btn { display: inline-block; border-radius: 12px; font-weight: 700; font-size: 1rem; padding: 10px 18px; transition: all 250ms var(--ease); }
     .btn:active { transform: scale(.98); }
     .btn-blue { background: var(--accent); color: #fff; }
     .btn-blue:hover { background: #002d87; }
@@ -77,14 +85,10 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
     .overlay.open a:nth-child(3) { transition-delay: .15s; }
     .overlay.open a:nth-child(4) { transition-delay: .2s; }
     .overlay.open a:nth-child(5) { transition-delay: .25s; }
-    main { padding-top: 6.5rem; }
+    main { padding-top: 3rem; }
     @media (max-width: 859px) {
-      main { padding-top: 5rem; }
-      .island { top: .75rem; width: calc(100vw - 2rem); justify-content: space-between; padding: .4rem .4rem .4rem .8rem; gap: 0; }
-      .island-cta { display: none; }
-      .brand { font-size: 1.05rem; margin-right: 0; }
-      .brand img { width: 1.75rem; height: 1.75rem; }
-      .burger { width: 2.5rem; height: 2.5rem; }
+      main { padding-top: 2rem; }
+      .topbar .enter, .topbar .cta-top { display: none; }
     }
     .hero { display: grid; gap: 2.5rem; align-items: start; }
     @media (min-width: 960px) { .hero { grid-template-columns: minmax(0,1.05fr) minmax(0,.95fr); } }
@@ -193,8 +197,11 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
     footer.site { margin-top: 5rem; border-top: 1px solid var(--line); background: #fff; padding: 2.5rem 0; font-size: .85rem; color: var(--mut); }
     footer.site .wrap { display: grid; gap: 1.5rem; }
     @media (min-width: 640px) { footer.site .wrap { grid-template-columns: 1.2fr 1fr 1fr; } }
-    footer.site h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; color: var(--ink); }
-    footer.site a { color: var(--mut); font-weight: 600; display: block; margin-top: .4rem; }
+    footer.site h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .5rem; color: #78716c; }
+    footer.site .base { max-width: 72rem; margin: 2rem auto 0; padding: 1.5rem 1rem 0; border-top: 1px solid #f1efec; font-size: .75rem; font-weight: 500; color: #78716c; }
+    @media (min-width: 640px) { footer.site .base { padding-left: 1.5rem; padding-right: 1.5rem; } }
+    footer.site a { color: var(--mut); font-weight: 600; display: block; margin-top: .375rem; }
+    footer.site a.brand { display: flex; margin-top: 0; color: var(--ink); }
     footer.site a:hover { color: var(--accent); }
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity 700ms cubic-bezier(0.32,0.72,0,1), transform 700ms cubic-bezier(0.32,0.72,0,1); }
     .reveal.in { opacity: 1; transform: none; }
@@ -203,22 +210,27 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
 </head>
 <body>
   <a class="skip" href="#contenido" style="position:absolute;left:-999px" onfocus="this.style.left='1rem'" onblur="this.style.left='-999px'">Saltar al contenido</a>
-  <div class="island">
-    <a class="brand" href="/"><img src="/logo.png" alt="Trabajogpt" />Trabajo<b>gpt</b></a>
+  <header class="topbar"><div class="in">
+    <a class="brand" href="/"><img src="/logo.png" alt="" />Trabajo<b>gpt</b></a>
     <nav aria-label="Secciones">
       <a href="#rubros">Rubros</a>
+      <a href={`${APP}/mapa`}>Mapa</a>
       <a href="#como-funciona">Cómo funciona</a>
       <a href="#faq">Preguntas</a>
     </nav>
-    <a class="btn btn-blue btn-sm island-cta" href={`${APP}/register`}>Crear cuenta</a>
-    <button class="burger" id="burger" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span></button>
-  </div>
+    <div class="acts">
+      <span class="hello" id="hello"></span>
+      <a class="enter" data-guest href={`${APP}/login`}>Entrar</a>
+      <a class="cta-top" data-cta href={`${APP}/register`} data-logged-href={`${APP}/ofertas`} data-logged-text="Mis ofertas">Crear cuenta</a>
+      <button class="burger" id="burger" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span></button>
+    </div>
+  </div></header>
   <div class="overlay" id="overlay">
     <a href="#rubros">Rubros</a>
     <a href="#como-funciona">Cómo funciona</a>
     <a href="#faq">Preguntas</a>
-    <a href={`${APP}/login`}>Entrar</a>
-    <a href={`${APP}/register`}>Crear cuenta</a>
+    <a data-cta href={`${APP}/login`} data-logged-href={`${APP}/perfil`} data-logged-text="Mi perfil">Entrar</a>
+    <a data-cta href={`${APP}/register`} data-logged-href={`${APP}/ofertas`} data-logged-text="Mis ofertas">Crear cuenta</a>
   </div>
 
   <main id="contenido">
@@ -228,8 +240,8 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
       <h1><span id="h-count">Miles de</span> trabajos de Uruguay en un solo lugar</h1>
       <p class="lead">Dejá de saltar entre portales: juntamos Computrabajo, BuscoJobs, LinkedIn e Indeed, los ordenamos por rubro y modalidad, y te avisamos cuando aparece algo para vos.</p>
       <div class="cta">
-        <a class="btn btn-blue" data-track="cta_hero" href={`${APP}/register`}>Crear cuenta gratis</a>
-        <a class="btn btn-ghost" href={`${APP}/login`}>Ya tengo cuenta</a>
+        <a class="btn btn-blue" data-track="cta_hero" data-cta href={`${APP}/register`} data-logged-href={`${APP}/ofertas`} data-logged-text="Ir a mis ofertas">Crear cuenta gratis</a>
+        <a class="btn btn-ghost" data-cta href={`${APP}/login`} data-logged-href={`${APP}/perfil`} data-logged-text="Mi perfil y matches">Ya tengo cuenta</a>
       </div>
       <p class="proof" id="proof">Miles de avisos · 4 fuentes · 100% gratis</p>
     </div>
@@ -240,7 +252,7 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
         <li><div style="padding:.85rem 1.25rem;border-top:1px solid var(--line)"><div class="skel" style="height:1rem;width:60%"></div><div class="skel" style="height:.75rem;width:40%;margin-top:.5rem"></div></div></li>
         <li><div style="padding:.85rem 1.25rem;border-top:1px solid var(--line)"><div class="skel" style="height:1rem;width:65%"></div><div class="skel" style="height:.75rem;width:50%;margin-top:.5rem"></div></div></li>
       </ul>
-      <footer><a href={`${APP}/register`}>Ver todos los avisos</a></footer>
+      <footer><a data-cta href={`${APP}/register?next=%2Fofertas`} data-logged-href={`${APP}/ofertas`} data-logged-text="Ver todos los avisos">Ver todos los avisos</a></footer>
     </div>
   </header>
 
@@ -273,7 +285,7 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
     </div>
     <div class="cta-band reveal">
       <div><h2>Empezá hoy, gratis</h2><p>Miles de avisos te están esperando.</p></div>
-      <a class="btn btn-sun" data-track="cta_final" href={`${APP}/register`}>Crear cuenta</a>
+      <a class="btn btn-sun" data-track="cta_final" data-cta href={`${APP}/register`} data-logged-href={`${APP}/ofertas`} data-logged-text="Ir a mis ofertas">Crear cuenta</a>
     </div>
   </section>
 
@@ -290,14 +302,17 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
   </section>
   </main>
 
+  <!-- Pie común: el mismo que web/src/components/ui.tsx (SiteFooter) -->
   <footer class="site"><div class="wrap">
     <div>
-      <a class="brand" href="/" style="margin-bottom:.5rem"><img src="/logo.png" alt="Trabajogpt" />Trabajo<b>gpt</b></a>
-      <p style="margin-top:.5rem;max-width:22rem">El agregador de empleo de Uruguay: ofertas, match con tu CV y seguimiento de postulaciones.</p>
+      <a class="brand" href="/"><img src="/logo.png" alt="" />Trabajo<b>gpt</b></a>
+      <p style="margin-top:.75rem;max-width:20rem;line-height:1.5rem">Todas las ofertas de Uruguay en un lugar, ordenadas por cuánto encajan con tu CV.</p>
     </div>
-    <div><h4>Explorar</h4><a href="#rubros">Rubros</a><a href={`${APP}/mapa`}>Mapa de ofertas</a><a href="#faq">Preguntas</a></div>
+    <div><h4>Explorar</h4><a href={`${APP}/ofertas`}>Ofertas</a><a href={`${APP}/mapa`}>Empleos por departamento</a><a href="#rubros">Rubros</a><a href="#faq">Preguntas frecuentes</a></div>
     <div><h4>Legal</h4><a href={`${APP}/privacidad`}>Privacidad</a><a href={`${APP}/terminos`}>Términos</a></div>
-  </div></footer>
+  </div>
+  <p class="base">© 2026 Trabajogpt · Hecho en Uruguay · Ofertas actualizadas a diario</p>
+  </footer>
 
   <div class="stickycta" style="display:none"></div>
 
@@ -353,6 +368,21 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
         } catch {}
       });
     });
+    // Sesión compartida con la app (mismo dominio): si ya entraste, la landing te lleva adentro.
+    let logged = false;
+    const toApp = (path) => (logged ? path : "/register?next=" + encodeURIComponent(path));
+    fetch("/api/session", { credentials: "same-origin" }).then((r) => r.json()).then((s) => {
+      if (!s.logged) return;
+      logged = true;
+      document.body.classList.add("logged");
+      const hello = document.getElementById("hello");
+      if (hello && s.nombre) hello.textContent = "Hola, " + s.nombre;
+      document.querySelectorAll("[data-cta]").forEach((a) => {
+        if (a.dataset.loggedHref) a.href = a.dataset.loggedHref;
+        if (a.dataset.loggedText) a.textContent = a.dataset.loggedText;
+      });
+      document.querySelectorAll("[data-path]").forEach((a) => { a.href = a.dataset.path; });
+    }).catch(() => {});
     fetch("/api/public/stats").then((r) => r.json()).then((d) => {
       const f = (n) => (n > 0 ? n.toLocaleString("es-UY") : "…");
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -377,7 +407,8 @@ const catSlug = (c: string) => c.replace(/_/g, "-");
         d.latest.forEach((o, idx) => {
           const li = document.createElement("li");
           const a = document.createElement("a");
-          a.href = "https://trabajogpt.eikoslabs.com/register";
+          a.dataset.path = "/oferta/" + o.id;
+          a.href = toApp(a.dataset.path);
           const name = (o.empresa || "?").trim();
           let h = 0;
           for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % AVC.length;

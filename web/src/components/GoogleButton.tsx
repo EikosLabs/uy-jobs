@@ -1,8 +1,8 @@
-export function GoogleButton({ text = "Continuar con Google" }: { text?: string }) {
+export function GoogleButton({ text = "Continuar con Google", next }: { text?: string; next?: string | null }) {
   // Si Google no está configurado, la ruta redirige a /login?error=... con aviso.
   return (
     <>
-      <a href="/api/auth/google"
+      <a href={next ? `/api/auth/google?next=${encodeURIComponent(next)}` : "/api/auth/google"}
         className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white py-3 font-semibold text-stone-900 transition hover:bg-stone-100">
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
           <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.1.1c2.1-2 3.9-4.9 3.9-8.9z" />

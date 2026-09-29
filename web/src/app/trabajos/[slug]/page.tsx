@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPool } from "@/lib/db";
-import { Logo } from "@/components/ui";
+
 import { CATS_BY_SLUG } from "@/lib/seo";
 import { fuenteLabel, modalidadLabel, ubicacionLabel } from "@/lib/format";
+import { SiteFooter } from "@/components/ui";
+import { AppNav } from "@/components/AppNav";
 
 const PRETTY: Record<string, string> = {
   tecnologia: "tecnología",
@@ -70,14 +72,8 @@ export default async function TrabajosCat({ params }: { params: Promise<{ slug: 
   return (
     <main className="bg-scene-plain min-h-screen">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5 sm:px-6">
-        <Logo />
-        <div className="flex gap-2 text-sm font-bold">
-          <Link href="/login" className="rounded-xl border border-stone-200 bg-white px-4 py-2 hover:bg-stone-50">Entrar</Link>
-          <Link href="/register" className="rounded-xl bg-[#0038a8] px-4 py-2 text-white hover:bg-[#2f6fed]">Crear cuenta</Link>
-        </div>
-      </nav>
-      <div className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+      <AppNav />
+      <div className="mx-auto max-w-5xl px-4 pb-20 pt-8 sm:px-6">
         <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">
           <Link href="/ofertas" className="hover:underline">Ofertas</Link> / {pretty}
         </p>
@@ -97,7 +93,7 @@ export default async function TrabajosCat({ params }: { params: Promise<{ slug: 
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {rows.map((o) => (
-            <article key={o.id} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <Link key={o.id} href={`/oferta/${o.id}`} className="card block p-5 transition hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-[var(--shadow-lift)]">
               <div className="flex flex-wrap gap-1.5 text-xs font-bold">
                 {o.modalidad && <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-[#0038a8]">{modalidadLabel(o.modalidad)}</span>}
                 {o.departamento && <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-stone-600">{o.departamento}</span>}
@@ -105,7 +101,7 @@ export default async function TrabajosCat({ params }: { params: Promise<{ slug: 
               </div>
               <h2 className="mt-2 font-[var(--font-display)] font-bold">{o.titulo || "(sin título)"}</h2>
               <p className="mt-1 text-sm font-medium text-stone-500">{[o.empresa, ubicacionLabel(o.ubicacion)].filter(Boolean).join(" · ")}</p>
-            </article>
+            </Link>
           ))}
         </div>
 
@@ -123,6 +119,7 @@ export default async function TrabajosCat({ params }: { params: Promise<{ slug: 
           </div>
         )}
       </div>
+      <SiteFooter />
     </main>
   );
 }

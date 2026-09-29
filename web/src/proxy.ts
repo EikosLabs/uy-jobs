@@ -32,7 +32,9 @@ export async function proxy(req: NextRequest) {
 
   const isProtected = PROTECTED_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
   if (isProtected && !logged) {
-    return withRef(NextResponse.redirect(new URL("/login", req.nextUrl)));
+    const login = new URL("/login", req.nextUrl);
+    login.searchParams.set("next", path + req.nextUrl.search);
+    return withRef(NextResponse.redirect(login));
   }
   if (logged && (path === "/" || GUEST_ONLY.includes(path))) {
     return withRef(NextResponse.redirect(new URL("/ofertas", req.nextUrl)));

@@ -6,7 +6,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { MobileMenu, type NavLink } from "@/components/MobileMenu";
 
 /** Barra superior de la app: marca, secciones, cuenta. */
-export async function AppNav({ active }: { active: "ofertas" | "mapa" | "postulaciones" | "avisos" | "perfil" | "admin" | "referidos" }) {
+export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postulaciones" | "avisos" | "perfil" | "admin" | "referidos" }) {
   const session = await getSession();
   const pool = getPool();
   let unread = 0;

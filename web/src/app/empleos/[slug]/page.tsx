@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPool } from "@/lib/db";
-import { Logo } from "@/components/ui";
+
 import { DEPTOS_BY_SLUG } from "@/lib/seo";
 import { catLabel, fuenteLabel, modalidadLabel, ubicacionLabel } from "@/lib/format";
+import { SiteFooter } from "@/components/ui";
+import { AppNav } from "@/components/AppNav";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -64,14 +66,8 @@ export default async function EmpleosDepto({ params }: { params: Promise<{ slug:
   return (
     <main className="bg-scene-plain min-h-screen">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5 sm:px-6">
-        <Logo />
-        <div className="flex gap-2 text-sm font-bold">
-          <Link href="/login" className="rounded-xl border border-stone-200 bg-white px-4 py-2 hover:bg-stone-50">Entrar</Link>
-          <Link href="/register" className="rounded-xl bg-[#0038a8] px-4 py-2 text-white hover:bg-[#2f6fed]">Crear cuenta</Link>
-        </div>
-      </nav>
-      <div className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
+      <AppNav />
+      <div className="mx-auto max-w-5xl px-4 pb-20 pt-8 sm:px-6">
         <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">
           <Link href="/mapa" className="hover:underline">Uruguay</Link> / {depto}
         </p>
@@ -94,7 +90,7 @@ export default async function EmpleosDepto({ params }: { params: Promise<{ slug:
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {rows.map((o) => (
-            <article key={o.id} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <Link key={o.id} href={`/oferta/${o.id}`} className="card block p-5 transition hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-[var(--shadow-lift)]">
               <div className="flex flex-wrap gap-1.5 text-xs font-bold">
                 <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-[#0038a8]">{catLabel(o.categoria)}</span>
                 {o.modalidad && <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-stone-600">{modalidadLabel(o.modalidad)}</span>}
@@ -102,7 +98,7 @@ export default async function EmpleosDepto({ params }: { params: Promise<{ slug:
               </div>
               <h2 className="mt-2 font-[var(--font-display)] font-bold">{o.titulo || "(sin título)"}</h2>
               <p className="mt-1 text-sm font-medium text-stone-500">{[o.empresa, ubicacionLabel(o.ubicacion)].filter(Boolean).join(" · ")}</p>
-            </article>
+            </Link>
           ))}
           {rows.length === 0 && (
             <p className="rounded-2xl border border-stone-200 bg-white p-6 text-sm font-medium text-stone-500">
@@ -136,6 +132,7 @@ export default async function EmpleosDepto({ params }: { params: Promise<{ slug:
           </div>
         </div>
       </div>
+      <SiteFooter />
     </main>
   );
 }

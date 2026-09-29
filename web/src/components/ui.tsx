@@ -194,33 +194,38 @@ export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; sh
   );
 }
 
-export function SiteFooter() {  return (
-    <footer className="border-t border-[#e7e5e4] bg-white py-10">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:grid-cols-[1.2fr_1fr_1fr] sm:px-6">
+/* Pie común: el mismo marcado vive en la landing (landing/src/pages/index.astro). */
+export function SiteFooter() {
+  const col = "mt-2 flex flex-col items-start gap-1.5 text-sm font-semibold";
+  const lnk = "text-[#57534e] hover:text-[#0038a8]";
+  return (
+    <footer className="mt-16 border-t border-[#e7e5e4] bg-white py-10">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:grid-cols-[1.4fr_1fr_1fr] sm:px-6">
         <div>
           <Logo />
           <p className="mt-3 max-w-xs text-sm leading-6 text-[#57534e]">
-            El agregador de empleo de Uruguay: ofertas, match con tu CV y seguimiento de postulaciones.
+            Todas las ofertas de Uruguay en un lugar, ordenadas por cuánto encajan con tu CV.
           </p>
         </div>
         <nav aria-label="Explorar">
           <p className="text-xs font-bold uppercase tracking-widest text-[#78716c]">Explorar</p>
-          <div className="mt-2 flex flex-col items-start gap-1 text-sm font-semibold">
-            <Link href="/ofertas" className="text-[#57534e] hover:text-[#0038a8]">Ofertas</Link>
-            <Link href="/mapa" className="text-[#57534e] hover:text-[#0038a8]">Mapa</Link>
-            <Link href="/postulaciones" className="text-[#57534e] hover:text-[#0038a8]">Postulaciones</Link>
+          <div className={col}>
+            <Link href="/ofertas" className={lnk}>Ofertas</Link>
+            <Link href="/mapa" className={lnk}>Empleos por departamento</Link>
+            <a href="/#rubros" className={lnk}>Rubros</a>
+            <a href="/#faq" className={lnk}>Preguntas frecuentes</a>
           </div>
         </nav>
         <nav aria-label="Legal">
           <p className="text-xs font-bold uppercase tracking-widest text-[#78716c]">Legal</p>
-          <div className="mt-2 flex flex-col items-start gap-1 text-sm font-semibold">
-            <Link href="/privacidad" className="text-[#57534e] hover:text-[#0038a8]">Privacidad</Link>
-            <Link href="/terminos" className="text-[#57534e] hover:text-[#0038a8]">Términos</Link>
+          <div className={col}>
+            <Link href="/privacidad" className={lnk}>Privacidad</Link>
+            <Link href="/terminos" className={lnk}>Términos</Link>
           </div>
         </nav>
       </div>
-      <p className="mx-auto mt-8 max-w-6xl px-4 text-xs text-[#78716c] sm:px-6">
-        Datos actualizados a diario.
+      <p className="mx-auto mt-8 max-w-6xl border-t border-[#f1efec] px-4 pt-6 text-xs font-medium text-[#78716c] sm:px-6">
+        © 2026 Trabajogpt · Hecho en Uruguay · Ofertas actualizadas a diario
       </p>
     </footer>
   );
