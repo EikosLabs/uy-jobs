@@ -159,7 +159,6 @@ export default async function OfertaPage({
               </p>
               <dl className="mt-5 space-y-3 text-sm">
                 {[
-                  ["Fuente", fuenteLabel(o.fuente)],
                   ["Contrato", o.contrato],
                   ["Jornada", o.jornada],
                   ["Experiencia", o.experiencia_min === null || o.experiencia_min === undefined ? "" : o.experiencia_min === 0 ? "No requiere" : `${o.experiencia_min}+ años`],
