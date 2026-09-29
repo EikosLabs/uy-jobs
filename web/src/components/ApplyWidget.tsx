@@ -39,7 +39,7 @@ export function ApplyWidget({ ofertaId, initialStatus }: { ofertaId: number; ini
     return (
       <button disabled={saving} onClick={() => save("guardada")}
         className="w-full rounded-xl border-2 border-dashed border-stone-300 py-2.5 text-sm font-bold text-stone-600 hover:border-[#0038a8] hover:text-[#0038a8] disabled:opacity-60">
-        {saving ? "Guardando…" : "＋ Guardar en mis postulaciones"}
+        {saving ? "Guardando…" : "+ Guardar en mis postulaciones"}
       </button>
     );
   }

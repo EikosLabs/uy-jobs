@@ -8,16 +8,17 @@ import { signup } from "@/actions/auth";
 import { CATEGORIAS, DEPARTAMENTOS } from "@/lib/supabase";
 import { AuthShell } from "@/components/ui";
 import { GoogleButton } from "@/components/GoogleButton";
+import { catLabel } from "@/lib/format";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [state, action, pending] = useActionState(signup, undefined);
-  const [users, setUsers] = useState<number | null>(null);
+  const [ofertas, setOfertas] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/public/stats")
       .then((r) => r.json())
-      .then((d) => setUsers(typeof d.users === "number" ? d.users : null))
+      .then((d) => setOfertas(typeof d.total === "number" ? d.total : null))
       .catch(() => {});
   }, []);
 
@@ -68,7 +69,7 @@ export default function RegisterPage() {
             {CATEGORIAS.map((c) => (
               <label key={c} className="cursor-pointer rounded-full border border-[#0a2156]/15 bg-stone-100 px-3 py-1.5 text-xs text-stone-500 transition has-checked:border-[#0038a8] has-checked:bg-[#e3ecfd] has-checked:text-[#0038a8]">
                 <input type="checkbox" name={`int_${c}`} className="sr-only" />
-                {c.replace(/_/g, " ")}
+                {catLabel(c)}
               </label>
             ))}
           </div>
@@ -79,8 +80,8 @@ export default function RegisterPage() {
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-stone-500">
-        {users !== null && users > 0 ? (
-          <>Ya somos <strong>{users}</strong> buscando trabajo acá. </>
+        {ofertas !== null && ofertas > 0 ? (
+          <><strong>{ofertas.toLocaleString("es-UY")}</strong> ofertas activas te esperan. </>
         ) : null}
         ¿Ya tenés cuenta?{" "}
         <Link href="/login" className="font-semibold text-[#0038a8] hover:text-[#0038a8]">

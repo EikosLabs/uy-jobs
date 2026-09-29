@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/track";
+import { catLabel, tagLabel } from "@/lib/format";
+import { CATEGORIAS } from "@/lib/supabase";
 
 type Profile = { cv_text: string; titulo: string; skills: string; experiencia: string };
 type Gap = { skill: string; n: number };
@@ -11,7 +13,7 @@ type Suggested = { categoria: string; n: number };
 export default function PerfilClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [matches, setMatches] = useState(0);
-  const [intereses, setIntereses] = useState("");
+  const [intereses, setIntereses] = useState<string[]>([]);
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [suggested, setSuggested] = useState<Suggested[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
@@ -31,7 +33,7 @@ export default function PerfilClient() {
         setMatches(d.matches ?? 0);
         setGaps(d.gaps ?? []);
         setSuggested(d.suggested ?? []);
-        setIntereses(((d.intereses as string[]) ?? []).join(", "));
+        setIntereses((d.intereses as string[]) ?? []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -82,7 +84,7 @@ export default function PerfilClient() {
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {suggested.map((s) => (
                       <span key={s.categoria} className="rounded-full bg-[#0a2156] px-3 py-1 text-xs font-bold text-white">
-                        {s.categoria.replace(/_/g, " ")} · {s.n}
+                        {catLabel(s.categoria)} · {s.n}
                       </span>
                     ))}
                   </div>
@@ -95,7 +97,7 @@ export default function PerfilClient() {
                     {gaps.map((g) => (
                       <span key={g.skill} title={`Aparece en ${g.n} avisos de tus rubros`}
                         className="rounded-full border border-[#0038a8]/30 bg-white px-3 py-1 text-xs font-bold text-[#0038a8]">
-                        {g.skill.replace(/_/g, " ")} · {g.n}
+                        {tagLabel(g.skill)} · {g.n}
                       </span>
                     ))}
                   </div>
@@ -132,11 +134,25 @@ export default function PerfilClient() {
                 <input name="titulo" defaultValue={profile?.titulo ?? ""} placeholder="Ej: Vendedora / Desarrollador Python"
                   className="field mt-1.5" />
               </div>
-              <div>
-                <label className="text-sm font-bold">Rubros que me interesan (separados por coma)</label>
-                <input name="intereses" value={intereses} onChange={(e) => setIntereses(e.target.value)}
-                  placeholder="Ej: ventas, tecnologia, administracion" className="field mt-1.5" />
-              </div>
+              <fieldset>
+                <legend className="text-sm font-bold">Rubros que me interesan</legend>
+                <input type="hidden" name="intereses" value={intereses.join(",")} />
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {CATEGORIAS.map((c) => {
+                    const on = intereses.includes(c);
+                    return (
+                      <button key={c} type="button" aria-pressed={on}
+                        onClick={() => setIntereses((prev) => (on ? prev.filter((x) => x !== c) : [...prev, c]))}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                          on ? "border-[#0038a8] bg-[#0038a8] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-[#0038a8] hover:text-[#0038a8]"
+                        }`}>
+                        {catLabel(c)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-xs font-medium text-stone-500">Si no elegís ninguno, los deducimos de tu CV.</p>
+              </fieldset>
               <div>
                 <label className="text-sm font-bold">Habilidades (separadas por coma)</label>
                 <input name="skills" defaultValue={skills.join(", ")} placeholder="Se detectan solas del CV"
@@ -151,7 +167,7 @@ export default function PerfilClient() {
                 <div className="flex flex-wrap gap-1.5">
                   {skills.map((s) => (
                     <span key={s} className="rounded-full border-2 border-[#0a2156] bg-[#dbeafe] px-2.5 py-0.5 text-xs font-bold text-[#0038a8]">
-                      {s}
+                      {tagLabel(s)}
                     </span>
                   ))}
                 </div>

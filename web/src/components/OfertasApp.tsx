@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIAS, DEPARTAMENTOS, FUENTES, MODALIDADES, SENIORITIES, type Oferta } from "@/lib/supabase";
-import { IconArrow, IconPin, IconSearch, OfertaCard } from "@/components/ui";
+import { IconPin, IconSearch, OfertaCard } from "@/components/ui";
 import { SwipeMode } from "@/components/SwipeMode";
 import { nearestDepartamento } from "@/lib/geo";
+import { catLabel, fuenteLabel, modalidadLabel, seniorityLabel } from "@/lib/format";
 
 type Facets = {
   counts: Record<string, number>;
@@ -105,38 +106,48 @@ export default function OfertasApp({
               e.preventDefault();
               set({ q: qDraft });
             }}
-            className="flex flex-wrap items-center gap-2"
+            className="grid gap-2"
             role="search"
           >
-            <input
-              value={qDraft}
-              onChange={(e) => setQDraft(e.target.value)}
-              placeholder="Buscar por título, empresa o palabra clave…"
-              className="field min-w-40 flex-1"
-              aria-label="Buscar ofertas"
-            />
+            <div className="flex gap-2">
+              <label className="relative min-w-0 flex-1">
+                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"><IconSearch /></span>
+                <input
+                  value={qDraft}
+                  onChange={(e) => setQDraft(e.target.value)}
+                  placeholder="Puesto, empresa o palabra clave…"
+                  className="field w-full pl-10"
+                  aria-label="Buscar ofertas"
+                  type="search"
+                />
+              </label>
+              <button type="submit" className="btn-primary shrink-0 px-5 py-2 text-sm">
+                Buscar
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
             <select value={f.categoria} onChange={(e) => set({ categoria: e.target.value })} className="field field-auto" aria-label="Categoría">
               <option value="">Todas las categorías</option>
               {CATEGORIAS.map((c) => (
-                <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
+                <option key={c} value={c}>{catLabel(c)}</option>
               ))}
             </select>
             <select value={f.modalidad} onChange={(e) => set({ modalidad: e.target.value })} className="field field-auto" aria-label="Modalidad">
               <option value="">Toda modalidad</option>
               {MODALIDADES.map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m} value={m}>{modalidadLabel(m)}</option>
               ))}
             </select>
             <select value={f.fuente} onChange={(e) => set({ fuente: e.target.value })} className="field field-auto" aria-label="Fuente">
               <option value="">Toda fuente</option>
               {FUENTES.filter((ff) => (resp?.facets.counts[ff] ?? 0) > 0).map((ff) => (
-                <option key={ff} value={ff}>{ff}</option>
+                <option key={ff} value={ff}>{fuenteLabel(ff)}</option>
               ))}
             </select>
             <select value={f.seniority} onChange={(e) => set({ seniority: e.target.value })} className="field field-auto" aria-label="Nivel">
               <option value="">Todos los niveles</option>
               {SENIORITIES.map((sn) => (
-                <option key={sn} value={sn}>{sn === "pasantia" ? "pasantía" : sn}</option>
+                <option key={sn} value={sn}>{seniorityLabel(sn)}</option>
               ))}
             </select>
             <select value={f.departamento} onChange={(e) => set({ departamento: e.target.value })} className="field field-auto" aria-label="Departamento">
@@ -146,11 +157,8 @@ export default function OfertasApp({
               ))}
             </select>
             <button type="button" onClick={locate} title="Trabajos cerca de mí"
-              className="rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm font-bold text-stone-600 hover:border-[#0a2156] hover:text-[#0a2156]">
-              Cerca de mí
-            </button>
-            <button type="submit" className="btn-primary shrink-0 px-5 py-2 text-sm">
-              Buscar
+              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm font-bold text-stone-600 hover:border-[#0a2156] hover:text-[#0a2156]">
+              <IconPin /> Cerca de mí
             </button>
             {(f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority || f.q) && (
               <button type="button" onClick={() => { setQDraft(""); setLocMsg(""); setF({ q: "", categoria: "", modalidad: "", fuente: "", departamento: "", seniority: "", page: 1 }); }}
@@ -158,6 +166,7 @@ export default function OfertasApp({
                 Limpiar
               </button>
             )}
+            </div>
           </form>
           {locMsg && <p className="mt-2 text-xs font-bold text-[#0038a8]" role="status">{locMsg}</p>}
         </div>
@@ -193,7 +202,7 @@ export default function OfertasApp({
           {FUENTES.filter((ff) => (resp?.facets.counts[ff] ?? 0) > 0).map((ff) => (
             <button key={ff} onClick={() => set({ fuente: f.fuente === ff ? "" : ff })}
               className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.fuente === ff ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-[#0a2156]"}`}>
-              {ff} · {resp?.facets.counts[ff] ?? "…"}
+              {fuenteLabel(ff)} · {resp?.facets.counts[ff] ?? "…"}
             </button>
           ))}
           <button onClick={() => set({ modalidad: f.modalidad === "remoto" ? "" : "remoto" })}
@@ -207,7 +216,7 @@ export default function OfertasApp({
             {(resp?.facets.topCats ?? []).map((t) => (
               <button key={t.categoria || "otros"} onClick={() => set({ categoria: f.categoria === t.categoria ? "" : (t.categoria || "") })}
                 className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.categoria === (t.categoria || "") ? "border-[#0038a8] bg-[#0038a8] text-white" : "border-dashed border-stone-300 bg-white text-stone-600 hover:border-[#0038a8] hover:text-[#0038a8]"}`}>
-                {(t.categoria || "otros").replace(/_/g, " ")} · {t.n.toLocaleString("es-UY")}
+                {catLabel(t.categoria)} · {t.n.toLocaleString("es-UY")}
               </button>
             ))}
           </div>

@@ -27,7 +27,7 @@ export default async function Referidos() {
 
   return (
     <main className="bg-scene-plain min-h-screen pb-24">
-      <AppNav active="ofertas" />
+      <AppNav active="referidos" />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">Invitá y crecé</p>

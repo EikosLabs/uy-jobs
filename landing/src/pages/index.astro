@@ -1,16 +1,23 @@
 ---
 const APP = "https://trabajogpt.eikoslabs.com";
 const fuentes = ["Computrabajo", "BuscoJobs", "LinkedIn", "Indeed"];
+const CAT_LABEL: Record<string, string> = {
+  tecnologia: "Tecnología", ventas: "Ventas", administracion: "Administración", logistica: "Logística",
+  atencion_cliente: "Atención al cliente", gerencia: "Gerencia", oficios: "Oficios", operarios: "Operarios",
+  salud: "Salud", marketing: "Marketing", hoteleria_turismo: "Hotelería y turismo", gastronomia: "Gastronomía",
+  educacion: "Educación", otros: "Otros rubros",
+};
 const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_cliente", "gerencia"];
+const catSlug = (c: string) => c.replace(/_/g, "-");
 ---
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>trabajogpt · Todos los trabajos de Uruguay en un lugar</title>
+  <title>Trabajogpt · Todos los trabajos de Uruguay en un lugar</title>
   <meta name="description" content="Miles de ofertas de Computrabajo, BuscoJobs, LinkedIn e Indeed reunidas, categorizadas y actualizadas a diario. Creá tu cuenta gratis." />
-  <meta property="og:title" content="trabajogpt · Todos los trabajos de Uruguay en un lugar" />
+  <meta property="og:title" content="Trabajogpt · Todos los trabajos de Uruguay en un lugar" />
   <meta property="og:description" content="Ofertas reunidas, match con tu CV y avisos diarios. Gratis." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content={`${APP}/logo.png`} />
@@ -117,7 +124,7 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
     .live li .sidecat { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); white-space: nowrap; }
     .live li.feat a { background: #0a2156; color: #fff; border-top: 0; }
     .live li.feat span.meta, .live li.feat time { color: #cbd5e1; }
-    .live li.feat .cat { color: var(--sun); }
+    .live li.feat .cat, .live li.feat .sidecat { color: var(--sun); }
     .live footer { padding: .9rem 1.25rem; background: #faf9f7; border-top: 1px solid var(--line); }
     .live footer a { font-size: .85rem; font-weight: 700; color: var(--accent); }
     .skel { border-radius: .8rem; background: linear-gradient(90deg, #eeece9 25%, #f7f5f2 50%, #eeece9 75%); background-size: 200% 100%; animation: sh 1.4s infinite; }
@@ -157,7 +164,7 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
     .tagline p { font-size: clamp(1.875rem, 4.5vw, 3rem); line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
     .tagline p span { color: rgba(28,25,23,.3); transition: color 700ms cubic-bezier(0.32,0.72,0,1); }
     .tagline p span.on { color: var(--ink); }
-    .catscroll { display: flex; gap: .75rem; overflow-x: auto; margin-top: 2rem; padding-bottom: .5rem; scrollbar-width: none; }
+    .catscroll { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: .75rem; margin-top: 2rem; }
     @media (max-width: 639px) {
       .catscroll { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
       .cat { min-width: 0; padding: .9rem 1rem; }
@@ -166,9 +173,9 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
       h2.title { font-size: 1.65rem; }
     }
     .catscroll::-webkit-scrollbar { display: none; }
-    .cat { flex-shrink: 0; background: #fff; border: 1px solid var(--line); border-radius: 1rem; padding: 1.1rem 1.4rem; color: var(--ink); transition: all 250ms cubic-bezier(0.32,0.72,0,1); min-width: 13rem; }
+    .cat { background: #fff; border: 1px solid var(--line); border-radius: 1rem; padding: 1.1rem 1.4rem; color: var(--ink); transition: all 250ms cubic-bezier(0.32,0.72,0,1); min-width: 0; }
     .cat:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 14px 30px -22px rgba(0,56,168,.5); }
-    .cat b { display: block; text-transform: capitalize; }
+    .cat b { display: block; }
     .cat span { font-size: .8rem; color: var(--mut); font-weight: 600; }
     .how { display: grid; gap: 2.5rem; margin-top: 2rem; }
     @media (min-width: 640px) { .how { grid-template-columns: repeat(3, minmax(0,1fr)); } }
@@ -219,7 +226,7 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
     <div>
       <span class="kicker"><i></i><span id="st-total">…</span>&nbsp;ofertas activas · actualizado a diario</span>
       <h1><span id="h-count">Miles de</span> trabajos de Uruguay en un solo lugar</h1>
-      <p class="lead">Dejá de revisar 5 portales: juntamos Computrabajo, BuscoJobs, LinkedIn e Indeed, los ordenamos por rubro y modalidad, y te avisamos cuando aparece algo para vos.</p>
+      <p class="lead">Dejá de saltar entre portales: juntamos Computrabajo, BuscoJobs, LinkedIn e Indeed, los ordenamos por rubro y modalidad, y te avisamos cuando aparece algo para vos.</p>
       <div class="cta">
         <a class="btn btn-blue" data-track="cta_hero" href={`${APP}/register`}>Crear cuenta gratis</a>
         <a class="btn btn-ghost" href={`${APP}/login`}>Ya tengo cuenta</a>
@@ -245,15 +252,15 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
   <section class="wrap block reveal" id="rubros">
     <p class="eyebrow">Explorá por rubro</p>
     <h2 class="title">¿En qué querés trabajar?</h2>
-    <p class="sub">Elegí un rubro y mirá los avisos reales que hay ahora mismo.</p>
+    <p class="sub">Elegí un rubro y mirá los avisos reales que hay ahora mismo, sin crear cuenta.</p>
     <div class="grid6" id="cats" style="display:none"></div>
     <div class="catscroll" id="catscroll">
-      {cats.map((c) => <a class="cat" href={`${APP}/register`}><b>{c.replace(/_/g, " ")}</b><span>Ver avisos</span></a>)}
+      {cats.map((c) => <a class="cat" href={`${APP}/trabajos/${catSlug(c)}`}><b>{CAT_LABEL[c]}</b><span>Ver avisos</span></a>)}
     </div>
   </section>
 
   <div class="wrap tagline reveal" id="tagline">
-    <p id="tagline-text">Cinco portales, cero paciencia. Un solo lugar donde el trabajo te encuentra a vos.</p>
+    <p id="tagline-text">Cuatro portales, cero paciencia. Un solo lugar donde el trabajo te encuentra a vos.</p>
   </div>
 
   <section class="wrap block" id="como-funciona">
@@ -351,14 +358,15 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
       set("st-total", f(d.total));
       set("h-count", d.total > 0 ? f(d.total) : "Miles de");
-      set("proof", `${f(d.total)} avisos · 4 fuentes · ${f(d.users)} personas buscando · gratis`);
+      set("proof", `${f(d.total)} avisos · 4 fuentes · actualizados a diario · gratis`);
       const AVC = [["#dbeafe","#0038a8"],["#fef9c3","#854d0e"],["#fcd116","#0a2156"],["#e0f2fe","#0c4a6e"],["#ffffff","#0038a8"],["#bbf7d0","#14532d"]];
       const box = document.getElementById("cats");
       const scroll = document.getElementById("catscroll");
       if (d.topCats?.length) {
         const html = d.topCats.map((t) => {
-          const n = (t.categoria || "otros").replace(/_/g, " ");
-          return `<a class="cat" href="https://trabajogpt.eikoslabs.com/register"><b>${n}</b><span>${t.n.toLocaleString("es-UY")} avisos</span></a>`;
+          const k = t.categoria || "otros";
+          const href = k === "otros" ? "https://trabajogpt.eikoslabs.com/register" : `https://trabajogpt.eikoslabs.com/trabajos/${k.replace(/_/g, "-")}`;
+          return `<a class="cat" href="${href}"><b>${catLabel(k)}</b><span>${t.n.toLocaleString("es-UY")} avisos</span></a>`;
         }).join("");
         if (box) box.innerHTML = html;
         if (scroll) scroll.innerHTML = html;
@@ -384,7 +392,7 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
           b.textContent = o.titulo || "(sin título)";
           const meta = document.createElement("span");
           meta.className = "meta";
-          meta.textContent = [o.empresa, o.ubicacion].filter(Boolean).join(" · ");
+          meta.textContent = [o.empresa, place(o.ubicacion)].filter(Boolean).join(" · ");
           tx.appendChild(b); tx.appendChild(meta);
           const side = document.createElement("span");
           side.style.cssText = "flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:.25rem";
@@ -392,8 +400,7 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
           tm.textContent = ago(o.fecha_scrapeo);
           const ct = document.createElement("span");
           ct.className = "sidecat";
-          ct.style.cssText = "font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)";
-          ct.textContent = (o.categoria || "otros").replace(/_/g, " ");
+          ct.textContent = catLabel(o.categoria);
           side.appendChild(tm); side.appendChild(ct);
           a.appendChild(av); a.appendChild(tx); a.appendChild(side);
           if (idx === 0) li.className = "feat";
@@ -406,6 +413,18 @@ const cats = ["tecnologia", "ventas", "administracion", "logistica", "atencion_c
       n("n-remoto", f(d.remotos));
       n("n-users", f(d.users));
     }).catch(() => {});
+    const CAT_LABEL = {"tecnologia": "Tecnología", "ventas": "Ventas", "administracion": "Administración", "logistica": "Logística", "atencion_cliente": "Atención al cliente", "gerencia": "Gerencia", "oficios": "Oficios", "operarios": "Operarios", "salud": "Salud", "marketing": "Marketing", "hoteleria_turismo": "Hotelería y turismo", "gastronomia": "Gastronomía", "educacion": "Educación", "otros": "Otros rubros"};
+    function catLabel(k) { return CAT_LABEL[k || "otros"] || String(k).replace(/_/g, " "); }
+    function place(u) {
+      if (!u) return "";
+      const seen = new Set();
+      return u.split(",").map((p) => p.replace(/^\s*Departamento de\s+/i, "").trim()).filter((p) => {
+        const k = p.toLowerCase();
+        if (!p || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      }).join(", ");
+    }
     function ago(iso) {
       if (!iso) return "";
       const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));

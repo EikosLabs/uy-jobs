@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getPool } from "@/lib/db";
 import { Logo } from "@/components/ui";
 import { CATS_BY_SLUG } from "@/lib/seo";
+import { fuenteLabel, modalidadLabel, ubicacionLabel } from "@/lib/format";
 
 const PRETTY: Record<string, string> = {
   tecnologia: "tecnología",
@@ -98,12 +99,12 @@ export default async function TrabajosCat({ params }: { params: Promise<{ slug: 
           {rows.map((o) => (
             <article key={o.id} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap gap-1.5 text-xs font-bold">
-                {o.modalidad && <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-[#0038a8]">{o.modalidad}</span>}
+                {o.modalidad && <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-[#0038a8]">{modalidadLabel(o.modalidad)}</span>}
                 {o.departamento && <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-stone-600">{o.departamento}</span>}
-                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-stone-500">{o.fuente}</span>
+                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-stone-500">{fuenteLabel(o.fuente)}</span>
               </div>
               <h2 className="mt-2 font-[var(--font-display)] font-bold">{o.titulo || "(sin título)"}</h2>
-              <p className="mt-1 text-sm font-medium text-stone-500">{[o.empresa, o.ubicacion].filter(Boolean).join(" · ")}</p>
+              <p className="mt-1 text-sm font-medium text-stone-500">{[o.empresa, ubicacionLabel(o.ubicacion)].filter(Boolean).join(" · ")}</p>
             </article>
           ))}
         </div>

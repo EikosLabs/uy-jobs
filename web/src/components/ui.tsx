@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Oferta } from "@/lib/supabase";
 import { MATCH_DISPLAY } from "@/lib/match";
+import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
 
 export function firstName(n: string | null | undefined) {
   return (n ?? "").trim().split(/\s+/)[0] || "Hola";
@@ -44,7 +45,16 @@ export function IconBell() {
 export function IconPin() {
   return (
     <Svg>
-      <path d="M200,224H150.54A266.56,266.56,0,0,0,174,200c0-34.93-25.5-63.42-59.67-68.2V96a8,8,0,0,1,16,0v8h24a8,8,0,0,1,0,16H96a8,8,0,0,1-8-8V96a8,8,0,0,1,16,0v35.8C70.37,136.58,44,165.07,44,200a8,8,0,0,0,8,8H56A52,52,0,0,1,108,160a52,52,0,0,1,52,48h40a8,8,0,0,0,0-16Z" />
+      <path d="M128,232s-72-56-72-128a72,72,0,0,1,144,0C200,176,128,232,128,232Z" />
+      <circle cx="128" cy="104" r="28" />
+    </Svg>
+  );
+}
+
+export function IconSparkle() {
+  return (
+    <Svg>
+      <path d="M128,32l22,58a8,8,0,0,0,4.6,4.6L212,116l-57.4,21.4A8,8,0,0,0,150,142l-22,58-22-58a8,8,0,0,0-4.6-4.6L44,116l57.4-21.4A8,8,0,0,0,106,90Z" />
     </Svg>
   );
 }
@@ -129,14 +139,11 @@ export function Chip({ children, tone = "zinc" }: { children: React.ReactNode; t
   );
 }
 
-export function salaryLine(o: Oferta) {
-  if (o.salario_num) return `${o.moneda} ${Number(o.salario_num).toLocaleString("es-UY")}`;
-  return o.salario || "";
-}
+export { salaryLine } from "@/lib/format";
 
 export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; shared?: string[] }) {
   return (
-    <article className="fluid-fast flex flex-col rounded-2xl border border-[#e7e5e4] bg-white p-6 shadow-[0_18px_40px_-28px_rgba(28,25,23,0.35)] hover:-transtone-y-1 hover:shadow-[0_24px_50px_-24px_rgba(0,56,168,0.35)]">
+    <article className="fluid-fast flex flex-col rounded-2xl border border-[#e7e5e4] bg-white p-6 shadow-[0_18px_40px_-28px_rgba(28,25,23,0.35)] hover:-translate-y-1 hover:shadow-[0_24px_50px_-24px_rgba(0,56,168,0.35)]">
       <div className="flex items-start gap-4">
         <CompanyAvatar name={o.empresa} />
         <div className="min-w-0 flex-1">
@@ -146,9 +153,9 @@ export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; sh
                 {match}% match
               </span>
             )}
-            <Chip tone="mint">{(o.categoria ?? "otros").replace(/_/g, " ")}</Chip>
-            {o.modalidad && <Chip tone="sky">{o.modalidad}</Chip>}
-            {o.seniority && <Chip tone="grape">{o.seniority}</Chip>}
+            <Chip tone="mint">{catLabel(o.categoria)}</Chip>
+            {o.modalidad && <Chip tone="sky">{modalidadLabel(o.modalidad)}</Chip>}
+            {o.seniority && <Chip tone="grape">{seniorityLabel(o.seniority)}</Chip>}
           </div>
           <h2 className="mt-2.5 text-lg font-bold leading-snug">
             <Link href={`/oferta/${o.id}`} className="transition-colors hover:text-[#0038a8]">
@@ -156,11 +163,11 @@ export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; sh
             </Link>
           </h2>
           <p className="mt-1 truncate text-sm font-medium text-[#57534e]">
-            {[o.empresa, o.ubicacion].filter(Boolean).join(" · ")}
+            {[o.empresa, ubicacionLabel(o.ubicacion)].filter(Boolean).join(" · ")}
           </p>
           {match !== undefined && match >= MATCH_DISPLAY && !!shared?.length && (
             <p className="mt-1.5 text-xs font-bold text-[#0038a8]">
-              ✓ Coincidís en {shared.map((s) => s.replace(/_/g, " ")).join(" · ")}
+              ✓ Coincidís en {shared.map(tagLabel).join(" · ")}
             </p>
           )}
         </div>
@@ -173,7 +180,7 @@ export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; sh
       <div className="mt-4 flex items-center justify-between border-t border-[#e7e5e4] pt-4 mt-auto">
         <span className="tnum text-sm font-bold text-[#1c1917]">{salaryLine(o) || <span className="font-medium text-[#78716c]">Salario a convenir</span>}</span>
         <span className="flex items-center gap-2 text-xs font-semibold text-[#78716c]">
-          {o.fuente}
+          {fuenteLabel(o.fuente)}
           <Link href={`/oferta/${o.id}`} className="fluid-fast inline-flex items-center gap-1 font-bold text-[#0038a8] hover:gap-2">
             Ver <IconArrow />
           </Link>

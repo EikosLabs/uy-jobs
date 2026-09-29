@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Oferta } from "@/lib/supabase";
-import { Chip, CompanyAvatar, salaryLine } from "@/components/ui";
+import { Chip, CompanyAvatar } from "@/components/ui";
+import { catLabel, salaryLine, tagLabel, ubicacionLabel } from "@/lib/format";
 
 export type DeckItem = Oferta & { match?: number; matchShared?: string[]; matchMissing?: string[] };
 
@@ -173,16 +174,16 @@ export function SwipeMode({ items, onExit }: { items: DeckItem[]; onExit: () => 
                     {current.match}% match
                   </span>
                 )}
-                <Chip tone="mint">{(current.categoria ?? "otros").replace(/_/g, " ")}</Chip>
+                <Chip tone="mint">{catLabel(current.categoria)}</Chip>
                 {current.modalidad && <Chip tone="sky">{current.modalidad}</Chip>}
               </div>
               <h2 className="mt-2 text-xl font-bold leading-snug">{current.titulo || "(sin título)"}</h2>
               <p className="mt-1 truncate text-sm font-medium text-[#57534e]">
-                {[current.empresa, current.ubicacion].filter(Boolean).join(" · ")}
+                {[current.empresa, ubicacionLabel(current.ubicacion)].filter(Boolean).join(" · ")}
               </p>
               {!!current.matchShared?.length && current.match !== undefined && current.match >= 35 && (
                 <p className="mt-1.5 text-xs font-bold text-[#0038a8]">
-                  ✓ Coincidís en {current.matchShared.map((s) => s.replace(/_/g, " ")).join(" · ")}
+                  ✓ Coincidís en {current.matchShared.map(tagLabel).join(" · ")}
                 </p>
               )}
             </div>

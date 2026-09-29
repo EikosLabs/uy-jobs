@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { catLabel, ubicacionLabel } from "@/lib/format";
 
 type Notif = {
   id: number;
@@ -78,7 +79,7 @@ export default function NotificacionesClient() {
                           {n.score}% match
                         </span>
                         <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-bold text-stone-600">
-                          {(n.categoria ?? "otros").replace(/_/g, " ")}
+                          {catLabel(n.categoria)}
                         </span>
                         {n.modalidad && (
                           <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-xs font-bold text-[#0038a8]">
@@ -88,7 +89,7 @@ export default function NotificacionesClient() {
                       </div>
                       <p className="mt-2 font-[var(--font-display)] font-bold">{n.titulo || "(sin título)"}</p>
                       <p className="text-sm font-medium text-stone-600">
-                        {[n.empresa, n.ubicacion].filter(Boolean).join(" · ")}
+                        {[n.empresa, ubicacionLabel(n.ubicacion)].filter(Boolean).join(" · ")}
                       </p>
                       {n.detail && <p className="mt-1 text-xs font-medium text-stone-500">Coincide: {n.detail}</p>}
                     </Link>
@@ -117,7 +118,7 @@ export default function NotificacionesClient() {
                           {n.score}% match
                         </span>
                         <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-bold text-stone-600">
-                          {(n.categoria ?? "otros").replace(/_/g, " ")}
+                          {catLabel(n.categoria)}
                         </span>
                         {n.modalidad && (
                           <span className="rounded-full bg-[#dbeafe] px-2.5 py-0.5 text-xs font-bold text-[#0038a8]">
@@ -127,7 +128,7 @@ export default function NotificacionesClient() {
                       </div>
                       <p className="mt-2 font-[var(--font-display)] font-bold">{n.titulo || "(sin título)"}</p>
                       <p className="text-sm font-medium text-stone-600">
-                        {[n.empresa, n.ubicacion].filter(Boolean).join(" · ")}
+                        {[n.empresa, ubicacionLabel(n.ubicacion)].filter(Boolean).join(" · ")}
                       </p>
                       {n.detail && <p className="mt-1 text-xs font-medium text-stone-500">Coincide: {n.detail}</p>}
                     </Link>

@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { getPool } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { AppNav } from "@/components/AppNav";
-import { Chip, CompanyAvatar, salaryLine } from "@/components/ui";
+import { Chip, CompanyAvatar } from "@/components/ui";
 import { ApplyWidget } from "@/components/ApplyWidget";
 import { CoverLetterWidget } from "@/components/CoverLetterWidget";
 import { implicitIntereses, scoreOferta } from "@/lib/match";
 import type { Oferta } from "@/lib/supabase";
+import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
 
 export default async function OfertaPage({
   params,
@@ -61,18 +62,18 @@ export default async function OfertaPage({
               <CompanyAvatar name={o.empresa} size="lg" />
               <div className="min-w-0">
                 <div className="flex flex-wrap gap-1.5">
-                  <Chip tone="mint">{(o.categoria ?? "otros").replace(/_/g, " ")}</Chip>
-                  {o.modalidad && <Chip tone="sky">{o.modalidad}</Chip>}
-                  {o.seniority && <Chip tone="grape">{o.seniority}</Chip>}
+                  <Chip tone="mint">{catLabel(o.categoria)}</Chip>
+                  {o.modalidad && <Chip tone="sky">{modalidadLabel(o.modalidad)}</Chip>}
+                  {o.seniority && <Chip tone="grape">{seniorityLabel(o.seniority)}</Chip>}
                   {tags.filter((t) => t !== o.categoria && t !== o.modalidad && t !== o.seniority).map((t) => (
-                    <Chip key={t} tone="amber">{t}</Chip>
+                    <Chip key={t} tone="amber">{tagLabel(t)}</Chip>
                   ))}
                 </div>
                 <h1 className="mt-3 font-[var(--font-display)] text-2xl font-bold leading-tight sm:text-3xl">
                   {o.titulo || "(sin título)"}
                 </h1>
                 <p className="mt-2 font-medium text-stone-600">
-                  {[o.empresa, o.ubicacion].filter(Boolean).join(" · ")}
+                  {[o.empresa, ubicacionLabel(o.ubicacion)].filter(Boolean).join(" · ")}
                 </p>
               </div>
             </div>
@@ -81,6 +82,21 @@ export default async function OfertaPage({
                 <h2 className="mt-8 text-xs font-bold uppercase tracking-widest text-stone-400">Descripción</h2>
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-stone-700">{o.descripcion}</p>
               </>
+            )}
+            {!o.descripcion && !o.requisitos && (
+              <div className="mt-8 rounded-2xl border border-dashed border-stone-300 bg-[#faf9f7] p-6">
+                <p className="text-sm font-bold text-[#0a2156]">
+                  {fuenteLabel(o.fuente)} no comparte la descripción completa de este aviso.
+                </p>
+                <p className="mt-1.5 text-sm leading-6 text-stone-600">
+                  Te mostramos lo que pudimos leer: puesto, empresa, zona y rubro. Los requisitos y
+                  el detalle están en el aviso original.
+                </p>
+                <a href={o.url} target="_blank" rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-[#0038a8] hover:underline">
+                  Leer el aviso completo en {fuenteLabel(o.fuente)} →
+                </a>
+              </div>
             )}
             {o.requisitos && (
               <>
@@ -97,12 +113,12 @@ export default async function OfertaPage({
                   <p className="mt-1 font-[var(--font-display)] text-2xl font-bold text-[#0038a8]">{compat.score}%</p>
                   {!!compat.shared.length && (
                     <p className="mt-2 text-xs font-bold text-[#0a2156]">
-                      ✓ Coincidís en {compat.shared.map((s) => s.replace(/_/g, " ")).join(" · ")}
+                      ✓ Coincidís en {compat.shared.map(tagLabel).join(" · ")}
                     </p>
                   )}
                   {!!compat.missing.length && (
                     <p className="mt-1.5 text-xs font-medium text-stone-500">
-                      Te faltaría: {compat.missing.map((s) => s.replace(/_/g, " ")).join(" · ")}
+                      Te faltaría: {compat.missing.map(tagLabel).join(" · ")}
                     </p>
                   )}
                   {!compat.shared.length && !compat.missing.length && (
@@ -122,7 +138,7 @@ export default async function OfertaPage({
               </p>
               <dl className="mt-5 space-y-3 text-sm">
                 {[
-                  ["Fuente", o.fuente],
+                  ["Fuente", fuenteLabel(o.fuente)],
                   ["Contrato", o.contrato],
                   ["Jornada", o.jornada],
                   ["Experiencia", o.experiencia_min === null || o.experiencia_min === undefined ? "" : o.experiencia_min === 0 ? "No requiere" : `${o.experiencia_min}+ años`],

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getPool } from "@/lib/db";
 import { CATEGORIAS } from "@/lib/supabase";
 import { Logo, SiteFooter } from "@/components/ui";
+import { catLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,7 @@ export default async function Landing() {
           {cats.map((t, i) => (
             <Link key={t.categoria} href="/register"
               className={`card-pop rounded-full px-6 py-3.5 font-[var(--font-display)] font-bold ${i % 2 ? "rotate-1" : "-rotate-1"}`}>
-              {(t.categoria || "otros").replace(/_/g, " ")}{" "}
+              {catLabel(t.categoria)}{" "}
               <span className="text-sm font-bold text-[#0a2156]/60">{t.n > 0 ? t.n.toLocaleString("es-UY") : ""}</span>
             </Link>
           ))}

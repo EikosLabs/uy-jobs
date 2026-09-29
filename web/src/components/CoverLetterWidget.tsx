@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconSparkle } from "@/components/ui";
 
 /** Genera la carta de presentación con IA para este aviso. */
 export function CoverLetterWidget({ ofertaId }: { ofertaId: number }) {
@@ -41,8 +42,10 @@ export function CoverLetterWidget({ ofertaId }: { ofertaId: number }) {
   return (
     <div>
       {!letter ? (
-        <button onClick={generate} disabled={loading} className="btn-accent w-full py-3 disabled:opacity-60">
-          {loading ? "Escribiendo…" : "✨ Generar carta con IA"}
+        <button onClick={generate} disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0038a8] bg-white py-2.5 text-sm font-bold text-[#0038a8] transition hover:bg-[#eff6ff] disabled:opacity-60">
+          {!loading && <IconSparkle />}
+          {loading ? "Escribiendo tu carta…" : "Generar carta con IA"}
         </button>
       ) : (
         <>

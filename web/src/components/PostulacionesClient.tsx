@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@/components/ui";
+import { ubicacionLabel } from "@/lib/format";
 
 export type Application = {
   id: number;
@@ -155,7 +156,7 @@ export default function PostulacionesClient() {
           {a.titulo || "(sin título)"}
         </Link>
         <p className="mt-0.5 truncate text-xs font-medium text-stone-500">
-          {[a.empresa, a.ubicacion].filter(Boolean).join(" · ")}
+          {[a.empresa, ubicacionLabel(a.ubicacion)].filter(Boolean).join(" · ")}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <StatusPill status={a.status} />
@@ -259,11 +260,29 @@ export default function PostulacionesClient() {
       {loading ? (
         <p className="mt-8 text-sm font-medium text-stone-500">Cargando…</p>
       ) : items.length === 0 ? (
-        <div className="mx-auto mt-8 max-w-md rounded-3xl border border-stone-200 bg-white p-8 text-center shadow-sm">
-          <p className="font-[var(--font-display)] text-xl font-bold">Todavía no guardaste nada</p>
-          <p className="mt-1 text-sm font-medium text-stone-500">
-            Explorá las <Link href="/ofertas" className="font-bold text-[#0038a8]">ofertas</Link> y guardá las que te gusten.
+        <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-stone-200 bg-white p-8 shadow-sm sm:p-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">Tu planilla de búsqueda</p>
+          <p className="mt-2 font-[var(--font-display)] text-2xl font-bold">Todavía no guardaste ninguna oferta</p>
+          <p className="mt-2 text-sm leading-6 text-stone-600">
+            Cada aviso que guardes aparece acá y lo movés de estado a medida que avanza. Así sabés a qué te
+            postulaste, quién respondió y qué entrevistas tenés, sin perder nada entre portales.
           </p>
+          <ol className="mt-6 grid gap-3 sm:grid-cols-3">
+            {[
+              ["1", "Guardá", "Desde cualquier oferta, con “Guardar en mis postulaciones”."],
+              ["2", "Actualizá", "Postulado, respuesta, entrevista u oferta: un toque."],
+              ["3", "Exportá", "Bajá todo a CSV cuando lo necesites."],
+            ].map(([n, t, d]) => (
+              <li key={n} className="rounded-2xl bg-[#faf9f7] p-4">
+                <span className="grid h-6 w-6 place-items-center rounded-md bg-[#0a2156] text-xs font-bold text-[#fcd116]">{n}</span>
+                <p className="mt-2 text-sm font-bold">{t}</p>
+                <p className="mt-0.5 text-xs leading-5 text-stone-500">{d}</p>
+              </li>
+            ))}
+          </ol>
+          <Link href="/ofertas" className="btn-accent mt-6 inline-block px-5 py-2.5 text-sm">
+            Explorar ofertas →
+          </Link>
         </div>
       ) : (
         <>

@@ -30,7 +30,7 @@ export default function Privacidad() {
             </section>
             <section>
               <h2 className="font-[var(--font-display)] text-lg font-bold text-[#0a2156]">5. Ofertas de terceros</h2>
-              <p className="mt-2">Las ofertas se agregan de Computrabajo, BuscoJobs y LinkedIn y enlazan al aviso original. No somos responsables del contenido de esos sitios.</p>
+              <p className="mt-2">Las ofertas se agregan de Computrabajo, BuscoJobs, LinkedIn e Indeed y enlazan al aviso original. No somos responsables del contenido de esos sitios.</p>
             </section>
           </div>
         </div>

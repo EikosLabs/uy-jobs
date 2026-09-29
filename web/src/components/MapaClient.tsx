@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import UyMap from "@/components/UyMap";
 import { CAPITALES, nearestDepartamento } from "@/lib/geo";
+import { IconPin } from "@/components/ui";
+import { slugify } from "@/lib/seo";
 
 export default function MapaClient() {
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -55,8 +57,8 @@ export default function MapaClient() {
             {total.toLocaleString("es-UY")} ofertas ubicadas por departamento
           </p>
         </div>
-        <button onClick={locate} className="rounded-xl bg-[#0a2156] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038a8]">
-          📍 Usar mi ubicación
+        <button onClick={locate} className="inline-flex items-center gap-2 rounded-xl bg-[#0a2156] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0038a8]">
+          <IconPin /> Usar mi ubicación
         </button>
       </div>
       {locError && <p className="mt-2 text-sm font-bold text-red-600">{locError}</p>}
@@ -103,12 +105,14 @@ export default function MapaClient() {
       </div>
 
       <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400">Capitales de referencia</h2>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400">Empleos por departamento</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {Object.entries(CAPITALES).map(([name, c]) => (
-            <span key={name} className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-600">
-              {name} · {c.capital}
-            </span>
+            <Link key={name} href={`/empleos/${slugify(name)}`}
+              className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-bold text-stone-600 transition hover:border-[#0038a8] hover:text-[#0038a8]">
+              {name}
+              {c.capital !== name && <span className="font-medium text-stone-400"> · {c.capital}</span>}
+            </Link>
           ))}
         </div>
       </div>
