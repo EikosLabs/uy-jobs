@@ -56,7 +56,7 @@ export default async function OfertaPage({
         <Link href="/ofertas" className="text-sm font-bold text-stone-500 hover:text-[#0038a8]">
           ← todas las ofertas
         </Link>
-        <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
           <article className="card p-6 sm:p-9">
             <div className="flex items-start gap-4">
               <CompanyAvatar name={o.empresa} size="lg" />
@@ -83,6 +83,19 @@ export default async function OfertaPage({
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-stone-700">{o.descripcion}</p>
               </>
             )}
+            <dl className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#e7e5e4] bg-[#e7e5e4] text-sm sm:grid-cols-4">
+              {[
+                ["Modalidad", o.modalidad ? modalidadLabel(o.modalidad) : "Presencial"],
+                ["Nivel", o.seniority ? seniorityLabel(o.seniority) : "Sin especificar"],
+                ["Zona", o.departamento || ubicacionLabel(o.ubicacion) || "Uruguay"],
+                ["Fuente", fuenteLabel(o.fuente)],
+              ].map(([k, v]) => (
+                <div key={k} className="bg-white px-3.5 py-3">
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-[#a8a29e]">{k}</dt>
+                  <dd className="mt-0.5 truncate font-semibold text-[#1c1917]">{v}</dd>
+                </div>
+              ))}
+            </dl>
             {!o.descripcion && !o.requisitos && (
               <div className="mt-8 rounded-2xl border border-dashed border-stone-300 bg-[#faf9f7] p-6">
                 <p className="text-sm font-bold text-[#0a2156]">
