@@ -56,7 +56,7 @@ export default function NotificacionesClient() {
         <div className="flex items-center justify-between">
           <h1 className="font-[var(--font-display)] text-3xl font-bold">Avisos para vos</h1>
           {items.some((i) => !i.read_at) && (
-            <button onClick={markAll} className="rounded-xl border-2 border-[#0a2156]/15 bg-white px-3 py-1.5 text-xs font-bold hover:bg-stone-100">
+            <button onClick={markAll} className="btn-ghost px-3 py-1.5 text-xs">
               Marcar leídas
             </button>
           )}
@@ -73,9 +73,9 @@ export default function NotificacionesClient() {
                 <div className="mt-3 space-y-3">
                   {top.map((n) => (
                     <Link key={`top-${n.id}`} href={`/oferta/${n.id}`}
-                      className="block rounded-3xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-[#0038a8]">
+                      className="block rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-[#0038a8]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border-2 border-[#0a2156] bg-[#fcd116] px-2.5 py-0.5 text-xs font-bold">
+                        <span className="rounded-md bg-[#fcd116] px-2 py-0.5 text-xs font-bold text-[#0a2156]">
                           {n.score}% match
                         </span>
                         <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-bold text-stone-600">
@@ -100,7 +100,7 @@ export default function NotificacionesClient() {
             <section className="mt-8">
               <h2 className="font-[var(--font-display)] text-lg font-bold">Avisos guardados</h2>
               {items.length === 0 ? (
-                <div className="mt-3 rounded-3xl border border-stone-200 bg-white p-8 text-center shadow-sm">
+                <div className="mt-3 rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
                   <p className="font-[var(--font-display)] text-xl font-bold">Sin avisos todavía</p>
                   <p className="mt-1 text-sm font-medium text-stone-600">
                     Cada mañana generamos avisos con tus mejores matches. Subí tu CV en{" "}
@@ -111,10 +111,10 @@ export default function NotificacionesClient() {
                 <div className="mt-3 space-y-3">
                   {items.map((n) => (
                     <Link key={n.id} href={`/oferta/${n.oferta_id}`}
-                      className={`block rounded-3xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-[#0038a8] ${n.read_at ? "opacity-70" : ""}`}>
+                      className={`block rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-[#0038a8] ${n.read_at ? "opacity-70" : ""}`}>
                       <div className="flex items-center gap-2">
                         {!n.read_at && <span className="h-2.5 w-2.5 rounded-full bg-[#0038a8]" />}
-                        <span className="rounded-full border-2 border-[#0a2156] bg-[#fcd116] px-2.5 py-0.5 text-xs font-bold">
+                        <span className="rounded-md bg-[#fcd116] px-2 py-0.5 text-xs font-bold text-[#0a2156]">
                           {n.score}% match
                         </span>
                         <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-bold text-stone-600">

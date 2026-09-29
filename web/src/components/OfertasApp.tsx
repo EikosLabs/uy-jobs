@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIAS, DEPARTAMENTOS, FUENTES, MODALIDADES, SENIORITIES, type Oferta } from "@/lib/supabase";
-import { IconPin, IconSearch, OfertaCard } from "@/components/ui";
+import { IconPin, IconSearch, IconSparkle, OfertaCard } from "@/components/ui";
 import { SwipeMode } from "@/components/SwipeMode";
 import { nearestDepartamento } from "@/lib/geo";
 import { catLabel, fuenteLabel, modalidadLabel, seniorityLabel } from "@/lib/format";
@@ -175,11 +175,13 @@ export default function OfertasApp({
 
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         {resp && !resp.error && !resp.facets.hasProfile && (
-          <Link href="/perfil" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#0a2156] bg-[#fcd116] px-5 py-4">
-            <span className="font-[var(--font-display)] font-bold">
-              Subí tu CV y te avisamos de tus matches →
+          <Link href="/perfil" className="notice mt-6 transition hover:border-[#93c5fd]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fcd116] text-[#0a2156]"><IconSparkle /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold">Subí tu CV y ordenamos las ofertas por cuánto encajás</span>
+              <span className="block text-sm font-medium text-[#0a2156]/70">Te avisamos cuando aparece un buen match. Tarda 30 segundos.</span>
             </span>
-            <span className="text-sm font-bold text-[#0a2156]/70">30 segundos, gratis</span>
+            <span className="hidden shrink-0 text-sm font-bold text-[#0038a8] sm:block">Subir CV →</span>
           </Link>
         )}
         <div className="flex flex-wrap items-baseline justify-between gap-2 pt-6">
@@ -202,12 +204,12 @@ export default function OfertasApp({
         <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex-wrap sm:px-0">
           {FUENTES.filter((ff) => (resp?.facets.counts[ff] ?? 0) > 0).map((ff) => (
             <button key={ff} onClick={() => set({ fuente: f.fuente === ff ? "" : ff })}
-              className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.fuente === ff ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-[#0a2156]"}`}>
+              className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.fuente === ff ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
               {fuenteLabel(ff)} · {resp?.facets.counts[ff] ?? "…"}
             </button>
           ))}
           <button onClick={() => set({ modalidad: f.modalidad === "remoto" ? "" : "remoto" })}
-            className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.modalidad === "remoto" ? "border-[#0a2156] bg-[#bae6fd] text-[#0c4a6e]" : "border-stone-200 bg-white text-stone-600 hover:border-[#0a2156]"}`}>
+            className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.modalidad === "remoto" ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
             Remoto · {resp?.facets.remotos ?? "…"}
           </button>
         </div>
@@ -216,18 +218,18 @@ export default function OfertasApp({
           <div className="scrollbar-none -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex-wrap sm:px-0">
             {(resp?.facets.topCats ?? []).map((t) => (
               <button key={t.categoria || "otros"} onClick={() => set({ categoria: f.categoria === t.categoria ? "" : (t.categoria || "") })}
-                className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.categoria === (t.categoria || "") ? "border-[#0038a8] bg-[#0038a8] text-white" : "border-dashed border-stone-300 bg-white text-stone-600 hover:border-[#0038a8] hover:text-[#0038a8]"}`}>
+                className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.categoria === (t.categoria || "") ? "border-[#0038a8] bg-[#0038a8] text-white" : "border-transparent bg-[#f1efec] text-stone-600 hover:bg-[#e7e5e4]"}`}>
                 {catLabel(t.categoria)} · {t.n.toLocaleString("es-UY")}
               </button>
             ))}
           </div>
         )}
-        {resp?.error && <p className="mt-8 rounded-2xl border-2 border-[#0a2156] bg-[#fcd116] px-4 py-3 font-bold text-[#0a2156]">Error: {resp.error}</p>}
+        {resp?.error && <p className="notice notice-error mt-8 font-semibold">No pudimos cargar las ofertas: {resp.error} Probá de nuevo en un momento.</p>}
 
         {loading && !resp ? (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="card-pop animate-pulse rounded-3xl bg-white p-5">
+              <div key={i} className="card animate-pulse p-5">
                 <div className="h-5 w-2/3 rounded bg-stone-200" />
                 <div className="mt-3 h-4 w-1/2 rounded bg-stone-100" />
                 <div className="mt-3 h-16 rounded bg-stone-100" />
@@ -245,9 +247,14 @@ export default function OfertasApp({
         )}
 
         {(resp?.data.length ?? 0) === 0 && !loading && !resp?.error && (
-          <div className="card-pop mx-auto mt-12 max-w-md rounded-3xl bg-white p-8 text-center">
-            <p className="font-[var(--font-display)] text-xl font-bold">Sin resultados</p>
-            <p className="mt-1 text-sm font-medium text-stone-600">Probá con otra búsqueda o sacá algún filtro.</p>
+          <div className="card mx-auto mt-12 max-w-md p-8 text-center">
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#f1efec] text-stone-500"><IconSearch /></span>
+            <p className="mt-4 text-lg font-bold">No encontramos ofertas con esos filtros</p>
+            <p className="mt-1 text-sm font-medium text-stone-600">Probá con otra palabra o sacá algún filtro.</p>
+            <button type="button" onClick={() => { setQDraft(""); setF({ q: "", categoria: "", modalidad: "", fuente: "", departamento: "", seniority: "", page: 1 }); }}
+              className="btn-ghost mt-5 px-4 py-2 text-sm">
+              Ver todas las ofertas
+            </button>
           </div>
         )}
 
@@ -255,12 +262,12 @@ export default function OfertasApp({
           <nav className="mt-8 flex items-center justify-center gap-3 text-sm font-bold">
             {f.page > 1 && (
               <button onClick={() => setF((p) => ({ ...p, page: p.page - 1 }))}
-                className="rounded-xl border-2 border-[#0a2156] bg-white px-4 py-2 hover:bg-stone-100">← anterior</button>
+                className="btn-ghost px-4 py-2 text-sm">← Anterior</button>
             )}
-            <span className="text-stone-600">{resp?.page} / {resp?.pages}</span>
+            <span className="tnum px-2 text-stone-500">Página {resp?.page} de {resp?.pages}</span>
             {f.page < (resp?.pages ?? 1) && (
               <button onClick={() => setF((p) => ({ ...p, page: p.page + 1 }))}
-                className="rounded-xl border-2 border-[#0a2156] bg-white px-4 py-2 hover:bg-stone-100">siguiente →</button>
+                className="btn-ghost px-4 py-2 text-sm">Siguiente →</button>
             )}
           </nav>
         )}

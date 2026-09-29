@@ -29,7 +29,7 @@ export default async function Referidos() {
     <main className="bg-scene-plain min-h-screen pb-24">
       <AppNav active="referidos" />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">Invitá y crecé</p>
           <h1 className="mt-2 font-[var(--font-display)] text-3xl font-bold">Traé a tus amigos a Trabajogpt</h1>
           <p className="mt-2 text-sm font-medium text-stone-600">

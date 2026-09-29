@@ -35,7 +35,7 @@ export default async function Admin() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map(([n, label], i) => (
-            <div key={label} className={`card-pop rounded-3xl px-4 py-6 text-center ${["bg-[#dbeafe]", "bg-[#bae6fd]", "bg-[#fde68a]", "bg-[#fcd116]"][i % 4]}`}>
+            <div key={label} className={`card-pop rounded-2xl px-4 py-6 text-center ${["bg-[#dbeafe]", "bg-[#bae6fd]", "bg-[#fde68a]", "bg-[#fcd116]"][i % 4]}`}>
               <div className="font-[var(--font-display)] text-3xl font-bold">{n}</div>
               <div className="mt-1 text-xs font-bold uppercase tracking-widest">{label}</div>
             </div>
@@ -54,7 +54,7 @@ export default async function Admin() {
           </div>
         </div>
 
-        <div className="card-pop mt-4 overflow-x-auto rounded-3xl bg-white">
+        <div className="card-pop mt-4 overflow-x-auto rounded-2xl bg-white">
           <table className="w-full min-w-180 text-left text-sm">
             <thead>
               <tr className="border-b-2 border-[#0a2156]/10 text-xs uppercase tracking-widest text-stone-500">

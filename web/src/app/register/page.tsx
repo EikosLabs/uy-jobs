@@ -67,14 +67,14 @@ export default function RegisterPage() {
           <span className="text-sm font-medium text-stone-600">¿Qué rubros te interesan?</span>
           <div className="mt-2 flex flex-wrap gap-2">
             {CATEGORIAS.map((c) => (
-              <label key={c} className="cursor-pointer rounded-full border border-[#0a2156]/15 bg-stone-100 px-3 py-1.5 text-xs text-stone-500 transition has-checked:border-[#0038a8] has-checked:bg-[#e3ecfd] has-checked:text-[#0038a8]">
+              <label key={c} className="cursor-pointer rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-bold text-stone-600 transition hover:border-[#0038a8] hover:text-[#0038a8] has-checked:border-[#0038a8] has-checked:bg-[#0038a8] has-checked:text-white has-focus-visible:outline-2 has-focus-visible:outline-[#0038a8]">
                 <input type="checkbox" name={`int_${c}`} className="sr-only" />
                 {catLabel(c)}
               </label>
             ))}
           </div>
         </div>
-        {state?.message && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">{state.message}</p>}
+        {state?.message && <p role="alert" className="notice notice-error text-sm font-semibold">{state.message}</p>}
         <button disabled={pending} type="submit" className="btn-primary w-full py-3">
           {pending ? "Creando cuenta…" : "Crear cuenta y ver ofertas"}
         </button>

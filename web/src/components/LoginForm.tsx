@@ -30,7 +30,7 @@ export function LoginForm() {
         <input id="password" name="password" type="password" required autoComplete="current-password"
           placeholder="••••••••" className="field mt-1.5" />
       </div>
-      {state?.message && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">{state.message}</p>}
+      {state?.message && <p role="alert" className="notice notice-error text-sm font-semibold">{state.message}</p>}
       <button disabled={pending} type="submit" className="btn-primary w-full py-3">
         {pending ? "Entrando…" : "Entrar"}
       </button>

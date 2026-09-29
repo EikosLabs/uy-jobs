@@ -72,11 +72,11 @@ export default function MapaClient() {
       )}
 
       <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="rounded-3xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
           <UyMap counts={counts} selected={selected} onSelect={setSelected} user={user} />
         </div>
         <aside className="space-y-3">
-          <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
             <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400">Top departamentos</h2>
             <ol className="mt-3 space-y-2">
               {top.map(([name, n]) => (
@@ -104,7 +104,7 @@ export default function MapaClient() {
         </aside>
       </div>
 
-      <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400">Empleos por departamento</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {Object.entries(CAPITALES).map(([name, c]) => (

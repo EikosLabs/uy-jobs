@@ -260,7 +260,7 @@ export default function PostulacionesClient() {
       {loading ? (
         <p className="mt-8 text-sm font-medium text-stone-500">Cargando…</p>
       ) : items.length === 0 ? (
-        <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-stone-200 bg-white p-8 shadow-sm sm:p-10">
+        <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-stone-200 bg-white p-8 shadow-sm sm:p-10">
           <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">Tu planilla de búsqueda</p>
           <p className="mt-2 font-[var(--font-display)] text-2xl font-bold">Todavía no guardaste ninguna oferta</p>
           <p className="mt-2 text-sm leading-6 text-stone-600">

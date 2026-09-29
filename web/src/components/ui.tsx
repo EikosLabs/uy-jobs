@@ -142,48 +142,52 @@ export function Chip({ children, tone = "zinc" }: { children: React.ReactNode; t
 export { salaryLine } from "@/lib/format";
 
 export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; shared?: string[] }) {
+  const salary = salaryLine(o);
+  const showMatch = match !== undefined && match >= MATCH_DISPLAY;
   return (
-    <article className="fluid-fast flex flex-col rounded-2xl border border-[#e7e5e4] bg-white p-6 shadow-[0_18px_40px_-28px_rgba(28,25,23,0.35)] hover:-translate-y-1 hover:shadow-[0_24px_50px_-24px_rgba(0,56,168,0.35)]">
-      <div className="flex items-start gap-4">
+    <article className="group relative flex flex-col rounded-2xl border border-[#e7e5e4] bg-white p-5 shadow-[var(--shadow-card)] transition duration-200 hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-[var(--shadow-lift)] sm:p-6">
+      <div className="flex items-start gap-3.5">
         <CompanyAvatar name={o.empresa} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap gap-1.5">
-            {match !== undefined && match >= MATCH_DISPLAY && (
-              <span className="inline-flex items-center rounded-md bg-[#fcd116] px-2 py-0.5 text-xs font-bold text-[#0a2156]">
-                {match}% match
-              </span>
-            )}
-            <Chip tone="mint">{catLabel(o.categoria)}</Chip>
-            {o.modalidad && <Chip tone="sky">{modalidadLabel(o.modalidad)}</Chip>}
-            {o.seniority && <Chip tone="grape">{seniorityLabel(o.seniority)}</Chip>}
-          </div>
-          <h2 className="mt-2.5 text-lg font-bold leading-snug">
-            <Link href={`/oferta/${o.id}`} className="transition-colors hover:text-[#0038a8]">
+          <h2 className="text-[17px] font-bold leading-snug text-[#1c1917]">
+            <Link href={`/oferta/${o.id}`} className="after:absolute after:inset-0 after:rounded-2xl group-hover:text-[#0038a8]">
               {o.titulo || "(sin título)"}
             </Link>
           </h2>
-          <p className="mt-1 truncate text-sm font-medium text-[#57534e]">
+          <p className="mt-0.5 truncate text-sm font-medium text-[#57534e]">
             {[o.empresa, ubicacionLabel(o.ubicacion)].filter(Boolean).join(" · ")}
           </p>
-          {match !== undefined && match >= MATCH_DISPLAY && !!shared?.length && (
-            <p className="mt-1.5 text-xs font-bold text-[#0038a8]">
-              ✓ Coincidís en {shared.map(tagLabel).join(" · ")}
-            </p>
-          )}
         </div>
+        {showMatch && (
+          <span className="shrink-0 rounded-lg bg-[#fcd116] px-2 py-1 text-xs font-bold text-[#0a2156]">
+            {match}%
+          </span>
+        )}
       </div>
+      <div className="mt-3.5 flex flex-wrap gap-1.5">
+        <Chip tone="mint">{catLabel(o.categoria)}</Chip>
+        {o.modalidad && <Chip tone="sky">{modalidadLabel(o.modalidad)}</Chip>}
+        {o.seniority && <Chip tone="zinc">{seniorityLabel(o.seniority)}</Chip>}
+      </div>
+      {showMatch && !!shared?.length && (
+        <p className="mt-2.5 text-xs font-semibold text-[#0038a8]">
+          Coincidís en {shared.map(tagLabel).join(" · ")}
+        </p>
+      )}
       {o.descripcion && (
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#57534e]">
           {o.descripcion.slice(0, 220)}
         </p>
       )}
-      <div className="mt-4 flex items-center justify-between border-t border-[#e7e5e4] pt-4 mt-auto">
-        <span className="tnum text-sm font-bold text-[#1c1917]">{salaryLine(o) || <span className="font-medium text-[#78716c]">Salario a convenir</span>}</span>
-        <span className="flex items-center gap-2 text-xs font-semibold text-[#78716c]">
-          {fuenteLabel(o.fuente)}
-          <Link href={`/oferta/${o.id}`} className="fluid-fast inline-flex items-center gap-1 font-bold text-[#0038a8] hover:gap-2">
-            Ver <IconArrow />
-          </Link>
+      <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+        {salary ? (
+          <span className="tnum rounded-lg bg-[#f0fdf4] px-2 py-1 text-sm font-bold text-[#166534]">{salary}</span>
+        ) : (
+          <span className="text-xs font-semibold text-[#a8a29e]">vía {fuenteLabel(o.fuente)}</span>
+        )}
+        <span className="inline-flex items-center gap-1 text-sm font-bold text-[#0038a8] transition-[gap] group-hover:gap-2">
+          {salary && <span className="mr-2 text-xs font-semibold text-[#a8a29e]">vía {fuenteLabel(o.fuente)}</span>}
+          Ver <IconArrow />
         </span>
       </div>
     </article>
@@ -253,8 +257,14 @@ export function StatusPill({ status }: { status: string }) {
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#faf9f7] px-4 py-10">
-      <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white shadow-[0_24px_60px_-32px_rgba(28,25,23,0.35)] md:grid-cols-[1fr_1.15fr]">
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white shadow-[var(--shadow-card)] md:grid-cols-[1fr_1.15fr]">
         <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0038a8] p-8 md:flex">
+          <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 text-[#fcd116] opacity-20">
+            <circle cx="100" cy="100" r="34" fill="currentColor" />
+            {Array.from({ length: 16 }).map((_, i) => (
+              <path key={i} d="M100 52 L106 20 L100 8 L94 20 Z" fill="currentColor" transform={`rotate(${i * 22.5} 100 100)`} />
+            ))}
+          </svg>
           <span className="relative flex items-center gap-2.5">
             <Image src="/logo.png" alt="Trabajogpt" width={36} height={36}
               className="h-9 w-9 rounded-xl border border-white/30 object-cover" />
@@ -264,12 +274,22 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
             <p className="text-3xl font-bold leading-10 text-white">
               Tu próximo trabajo está acá.
             </p>
-            <div className="mt-6 space-y-2.5 text-sm font-semibold text-white">
-              {["Miles de ofertas en un solo lugar", "Filtros por rubro y modalidad", "Nuevos avisos todos los días"].map((t) => (
+            <div className="mt-6 space-y-2.5 text-sm font-semibold text-white/90">
+              {["Todas las ofertas de Uruguay en un lugar", "Ordenadas por cuánto encajan con tu CV", "Seguimiento de cada postulación"].map((t) => (
                 <p key={t} className="flex items-center gap-2.5">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#fcd116] text-xs font-bold text-[#0a2156]">✓</span>{t}
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#fcd116] text-[#0a2156]"><IconCheck /></span>{t}
                 </p>
               ))}
+            </div>
+            <div aria-hidden className="mt-8 rounded-xl bg-white p-4 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.5)]">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#fef9c3] text-xs font-bold text-[#854d0e]">AD</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[#1c1917]">Analista de datos junior</p>
+                  <p className="truncate text-xs font-medium text-[#57534e]">Montevideo · Híbrido</p>
+                </div>
+                <span className="rounded-md bg-[#fcd116] px-1.5 py-0.5 text-xs font-bold text-[#0a2156]">86%</span>
+              </div>
             </div>
           </div>
           <p className="relative text-xs font-semibold text-white/70">Gratis, para siempre.</p>

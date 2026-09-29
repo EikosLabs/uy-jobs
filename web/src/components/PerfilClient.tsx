@@ -64,15 +64,16 @@ export default function PerfilClient() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6">
-      <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+      <div className="card mt-6 p-6 sm:p-8">
           <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">Tu perfil profesional</p>
           <h1 className="mt-2 font-[var(--font-display)] text-3xl font-bold">Mi CV y mis matches</h1>
           <p className="mt-2 text-sm font-medium text-stone-600">
             Subí tu CV (PDF o foto). Lo leemos con OCR, armamos tu perfil y te avisamos de ofertas que encajan.
           </p>
           {matches > 0 && (
-            <Link href="/notificaciones" className="mt-4 block rounded-2xl border-2 border-[#0a2156] bg-[#fcd116] px-4 py-3 text-center font-bold">
-              Tenés {matches} ofertas con buen match →
+            <Link href="/notificaciones" className="notice mt-5 justify-between font-bold transition hover:border-[#93c5fd]">
+              <span><span className="tnum mr-1.5 rounded-md bg-[#fcd116] px-1.5 py-0.5">{matches}</span> ofertas encajan con tu perfil</span>
+              <span className="text-sm text-[#0038a8]">Verlas →</span>
             </Link>
           )}
           {(suggested.length > 0 || gaps.length > 0) && (
@@ -166,13 +167,13 @@ export default function PerfilClient() {
               {skills.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {skills.map((s) => (
-                    <span key={s} className="rounded-full border-2 border-[#0a2156] bg-[#dbeafe] px-2.5 py-0.5 text-xs font-bold text-[#0038a8]">
+                    <span key={s} className="rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-2.5 py-0.5 text-xs font-bold text-[#0038a8]">
                       {tagLabel(s)}
                     </span>
                   ))}
                 </div>
               )}
-              {msg && <p className="rounded-xl border-2 border-[#0a2156] bg-[#f6f9ff] px-3 py-2.5 text-sm font-bold">{msg}</p>}
+              {msg && <p role="status" className="notice text-sm font-bold">{msg}</p>}
               <button disabled={saving} type="submit" className="btn-accent w-full py-3">
                 {saving ? "Leyendo CV…" : "Guardar perfil"}
               </button>

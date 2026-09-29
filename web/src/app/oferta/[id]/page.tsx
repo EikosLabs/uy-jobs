@@ -57,7 +57,7 @@ export default async function OfertaPage({
           ← todas las ofertas
         </Link>
         <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <article className="rounded-3xl border border-stone-200 bg-white p-7 shadow-sm sm:p-9">
+          <article className="card p-6 sm:p-9">
             <div className="flex items-start gap-4">
               <CompanyAvatar name={o.empresa} size="lg" />
               <div className="min-w-0">
@@ -106,14 +106,19 @@ export default async function OfertaPage({
             )}
           </article>
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+            <div className="card p-6">
               <p className="text-xs font-bold uppercase tracking-widest text-stone-400">Tu compatibilidad</p>
               {compat ? (
                 <>
-                  <p className="mt-1 font-[var(--font-display)] text-2xl font-bold text-[#0038a8]">{compat.score}%</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <p className="tnum text-3xl font-bold text-[#0038a8]">{compat.score}%</p>
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#eff6ff]">
+                      <span className="block h-full rounded-full bg-[#0038a8]" style={{ width: `${Math.min(100, compat.score)}%` }} />
+                    </span>
+                  </div>
                   {!!compat.shared.length && (
                     <p className="mt-2 text-xs font-bold text-[#0a2156]">
-                      ✓ Coincidís en {compat.shared.map(tagLabel).join(" · ")}
+                      Coincidís en {compat.shared.map(tagLabel).join(" · ")}
                     </p>
                   )}
                   {!!compat.missing.length && (
@@ -126,12 +131,15 @@ export default async function OfertaPage({
                   )}
                 </>
               ) : (
-                <Link href="/perfil" className="mt-2 block text-sm font-bold text-[#0038a8] underline">
-                  Subí tu CV y vemos si encajás →
-                </Link>
+                <>
+                  <p className="mt-1.5 text-sm leading-6 text-stone-600">Subí tu CV y te decimos qué tanto encajás con este puesto y qué te faltaría.</p>
+                  <Link href="/perfil" className="btn-ghost mt-3 w-full py-2 text-sm">
+                    Subir mi CV
+                  </Link>
+                </>
               )}
             </div>
-            <div className="mt-5 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+            <div className="mt-5 card p-6">
               <p className="text-xs font-bold uppercase tracking-widest text-stone-400">Salario</p>
               <p className="mt-1 font-[var(--font-display)] text-2xl font-bold text-[#0038a8]">
                 {salaryLine(o) || <span className="text-base font-bold text-stone-400">A convenir</span>}
@@ -150,10 +158,10 @@ export default async function OfertaPage({
                   </div>
                 ))}
               </dl>
-              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-accent mt-6 block py-3 text-center">
-                Postularme →
+              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-accent mt-6 w-full py-3">
+                Postularme en {fuenteLabel(o.fuente)} ↗
               </a>
-              <p className="mt-2.5 text-center text-xs font-semibold text-stone-400">Te llevamos al aviso original</p>
+              <p className="mt-2 text-center text-xs font-semibold text-stone-400">Se abre el aviso original en otra pestaña</p>
               <div className="mt-4 border-t border-stone-100 pt-4">
                 <ApplyWidget ofertaId={num} initialStatus={appStatus} />
               </div>

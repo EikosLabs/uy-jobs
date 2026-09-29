@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Oferta } from "@/lib/supabase";
 import { Chip, CompanyAvatar } from "@/components/ui";
-import { catLabel, salaryLine, tagLabel, ubicacionLabel } from "@/lib/format";
+import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
 
 export type DeckItem = Oferta & { match?: number; matchShared?: string[]; matchMissing?: string[] };
 
@@ -116,8 +116,8 @@ export function SwipeMode({ items, onExit }: { items: DeckItem[]; onExit: () => 
 
   if (!current) {
     return (
-      <div className="mx-auto mt-6 max-w-md rounded-3xl border border-stone-200 bg-white p-8 text-center shadow-sm">
-        <p className="font-[var(--font-display)] text-2xl font-bold">¡Viste todo! 🎉</p>
+      <div className="mx-auto mt-6 max-w-md rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
+        <p className="font-[var(--font-display)] text-2xl font-bold">¡Viste todas!</p>
         <p className="mt-2 text-sm font-medium text-stone-500">
           Guardaste {saved} · descartaste {discarded}
         </p>
@@ -147,7 +147,7 @@ export function SwipeMode({ items, onExit }: { items: DeckItem[]; onExit: () => 
       </div>
       <div className="relative mt-2" style={{ minHeight: 460 }}>
         {next && (
-          <div aria-hidden className="absolute inset-0 scale-[.97] rounded-3xl border border-stone-200 bg-stone-100" />
+          <div aria-hidden className="absolute inset-0 scale-[.97] rounded-2xl border border-stone-200 bg-stone-100" />
         )}
         <article
           onPointerDown={onDown}
@@ -155,7 +155,7 @@ export function SwipeMode({ items, onExit }: { items: DeckItem[]; onExit: () => 
           onPointerUp={onUp}
           onPointerCancel={onUp}
           style={{ ...style, touchAction: "pan-y" }}
-          className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-[0_24px_50px_-24px_rgba(0,56,168,0.35)] active:cursor-grabbing"
+          className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-[var(--shadow-lift)] active:cursor-grabbing"
         >
           <span className="pointer-events-none absolute left-4 top-4 z-10 rounded-lg border-4 border-green-600 px-2 py-0.5 text-lg font-black uppercase text-green-600"
             style={{ opacity: saveOp, transform: "rotate(-12deg)" }}>
@@ -175,7 +175,7 @@ export function SwipeMode({ items, onExit }: { items: DeckItem[]; onExit: () => 
                   </span>
                 )}
                 <Chip tone="mint">{catLabel(current.categoria)}</Chip>
-                {current.modalidad && <Chip tone="sky">{current.modalidad}</Chip>}
+                {current.modalidad && <Chip tone="sky">{modalidadLabel(current.modalidad)}</Chip>}
               </div>
               <h2 className="mt-2 text-xl font-bold leading-snug">{current.titulo || "(sin título)"}</h2>
               <p className="mt-1 truncate text-sm font-medium text-[#57534e]">
@@ -183,16 +183,31 @@ export function SwipeMode({ items, onExit }: { items: DeckItem[]; onExit: () => 
               </p>
               {!!current.matchShared?.length && current.match !== undefined && current.match >= 35 && (
                 <p className="mt-1.5 text-xs font-bold text-[#0038a8]">
-                  ✓ Coincidís en {current.matchShared.map(tagLabel).join(" · ")}
+                  Coincidís en {current.matchShared.map(tagLabel).join(" · ")}
                 </p>
               )}
             </div>
           </div>
           {current.descripcion && (
-            <p className="line-clamp-6 px-5 pt-3 text-sm leading-6 text-[#57534e]">{current.descripcion.slice(0, 400)}</p>
+            <p className="line-clamp-5 px-5 pt-3 text-sm leading-6 text-[#57534e]">{current.descripcion.slice(0, 360)}</p>
           )}
+          <dl className="mx-5 mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#e7e5e4] bg-[#e7e5e4] text-sm">
+            {[
+              ["Rubro", catLabel(current.categoria)],
+              ["Modalidad", current.modalidad ? modalidadLabel(current.modalidad) : "Presencial"],
+              ["Nivel", current.seniority ? seniorityLabel(current.seniority) : "Sin especificar"],
+              ["Zona", current.departamento || ubicacionLabel(current.ubicacion) || "Uruguay"],
+              ["Salario", salaryLine(current) || "A convenir"],
+              ["Fuente", fuenteLabel(current.fuente)],
+            ].map(([k, v]) => (
+              <div key={k} className="bg-white px-3 py-2.5">
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-[#a8a29e]">{k}</dt>
+                <dd className="mt-0.5 truncate font-semibold text-[#1c1917]">{v}</dd>
+              </div>
+            ))}
+          </dl>
           <div className="mt-auto flex items-center justify-between border-t border-[#e7e5e4] px-5 py-3">
-            <span className="text-sm font-bold">{salaryLine(current) || <span className="font-medium text-[#78716c]">A convenir</span>}</span>
+            <span className="text-xs font-semibold text-[#a8a29e]">Deslizá para decidir</span>
             <Link href={`/oferta/${current.id}`} className="text-sm font-bold text-[#0038a8] hover:underline">
               Detalle →
             </Link>
