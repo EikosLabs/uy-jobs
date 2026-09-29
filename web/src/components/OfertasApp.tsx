@@ -51,6 +51,8 @@ export default function OfertasApp({
   const [resp, setResp] = useState<Resp | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"lista" | "swipe">("lista");
+  const [showFilters, setShowFilters] = useState(false);
+  const activeFilters = [f.categoria, f.modalidad, f.fuente, f.departamento, f.seniority].filter(Boolean).length;
 
   // en celular arranca en swipe, formato principal móvil
   useEffect(() => {
@@ -122,11 +124,15 @@ export default function OfertasApp({
                   type="search"
                 />
               </label>
+              <button type="button" onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}
+                className="btn-ghost shrink-0 px-3 py-2 text-sm sm:hidden">
+                Filtros{activeFilters ? ` · ${activeFilters}` : ""}
+              </button>
               <button type="submit" className="btn-primary shrink-0 px-5 py-2 text-sm">
                 Buscar
               </button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={`${showFilters ? "flex" : "hidden"} flex-wrap items-center gap-2 sm:flex`}>
             <select value={f.categoria} onChange={(e) => set({ categoria: e.target.value })} className="field field-auto" aria-label="Categoría">
               <option value="">Todas las categorías</option>
               {CATEGORIAS.map((c) => (
@@ -175,11 +181,11 @@ export default function OfertasApp({
 
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         {resp && !resp.error && !resp.facets.hasProfile && (
-          <Link href="/perfil" className="notice mt-6 transition hover:border-[#93c5fd]">
+          <Link href="/perfil" className="notice mt-4 transition hover:border-[#93c5fd] sm:mt-6">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fcd116] text-[#0a2156]"><IconSparkle /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-bold">Subí tu CV y ordenamos las ofertas por cuánto encajás</span>
-              <span className="block text-sm font-medium text-[#0a2156]/70">Te avisamos cuando aparece un buen match. Tarda 30 segundos.</span>
+              <span className="hidden text-sm font-medium text-[#0a2156]/70 sm:block">Te avisamos cuando aparece un buen match. Tarda 30 segundos.</span>
             </span>
             <span className="hidden shrink-0 text-sm font-bold text-[#0038a8] sm:block">Subir CV →</span>
           </Link>
@@ -201,7 +207,7 @@ export default function OfertasApp({
           </div>
         </div>
 
-        <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex-wrap sm:px-0">
+        <div className={`scrollbar-none -mx-4 mt-3 gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex sm:flex-wrap sm:px-0 ${view === "swipe" ? "hidden" : "flex"}`}>
           {FUENTES.filter((ff) => (resp?.facets.counts[ff] ?? 0) > 0).map((ff) => (
             <button key={ff} onClick={() => set({ fuente: f.fuente === ff ? "" : ff })}
               className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.fuente === ff ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
@@ -215,7 +221,7 @@ export default function OfertasApp({
         </div>
 
         {(resp?.facets.topCats.length ?? 0) > 0 && (
-          <div className="scrollbar-none -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex-wrap sm:px-0">
+          <div className={`scrollbar-none -mx-4 mt-2 gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex sm:flex-wrap sm:px-0 ${view === "swipe" ? "hidden" : "flex"}`}>
             {(resp?.facets.topCats ?? []).map((t) => (
               <button key={t.categoria || "otros"} onClick={() => set({ categoria: f.categoria === t.categoria ? "" : (t.categoria || "") })}
                 className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.categoria === (t.categoria || "") ? "border-[#0038a8] bg-[#0038a8] text-white" : "border-transparent bg-[#f1efec] text-stone-600 hover:bg-[#e7e5e4]"}`}>
