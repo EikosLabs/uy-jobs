@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CATEGORIAS, DEPARTAMENTOS, FUENTES, MODALIDADES, SENIORITIES, type Oferta } from "@/lib/supabase";
 import { IconArrow, IconPin, IconSearch, OfertaCard } from "@/components/ui";
+import { SwipeMode } from "@/components/SwipeMode";
 import { nearestDepartamento } from "@/lib/geo";
 
 type Facets = {
@@ -48,6 +49,12 @@ export default function OfertasApp({
   const [locMsg, setLocMsg] = useState("");
   const [resp, setResp] = useState<Resp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"lista" | "swipe">("lista");
+
+  // en celular arranca en swipe, formato principal móvil
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 640) setView("swipe");
+  }, []);
 
   const load = useCallback(async (ff: Filters) => {
     setLoading(true);
@@ -170,6 +177,16 @@ export default function OfertasApp({
             {f.q || f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority ? "Resultados" : "Ofertas destacadas"}
             <span className="ml-2 text-base font-bold text-stone-400">{resp ? `${resp.total.toLocaleString("es-UY")} avisos` : ""}</span>
           </h1>
+          <div className="flex rounded-xl border border-stone-200 bg-white p-0.5 text-sm font-bold" role="tablist" aria-label="Vista">
+            <button role="tab" aria-selected={view === "lista"} onClick={() => setView("lista")}
+              className={`rounded-lg px-3 py-1.5 ${view === "lista" ? "bg-[#0a2156] text-white" : "text-stone-500"}`}>
+              Lista
+            </button>
+            <button role="tab" aria-selected={view === "swipe"} onClick={() => setView("swipe")}
+              className={`rounded-lg px-3 py-1.5 ${view === "swipe" ? "bg-[#0a2156] text-white" : "text-stone-500"}`}>
+              Swipe
+            </button>
+          </div>
         </div>
 
         <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex-wrap sm:px-0">
@@ -207,6 +224,8 @@ export default function OfertasApp({
               </div>
             ))}
           </div>
+        ) : view === "swipe" && resp && !resp.error ? (
+          <SwipeMode items={resp.data} onExit={() => setView("lista")} />
         ) : (
           <div className={`mt-6 grid gap-5 md:grid-cols-2 ${loading ? "opacity-60" : ""}`}>
             {(resp?.data ?? []).map((o) => (
@@ -222,7 +241,7 @@ export default function OfertasApp({
           </div>
         )}
 
-        {(resp?.pages ?? 1) > 1 && (
+        {view === "lista" && (resp?.pages ?? 1) > 1 && (
           <nav className="mt-8 flex items-center justify-center gap-3 text-sm font-bold">
             {f.page > 1 && (
               <button onClick={() => setF((p) => ({ ...p, page: p.page - 1 }))}

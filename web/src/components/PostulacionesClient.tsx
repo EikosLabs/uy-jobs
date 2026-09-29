@@ -44,6 +44,7 @@ export default function PostulacionesClient() {
   const [items, setItems] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [activeCol, setActiveCol] = useState<string>("guardada");
   const [openNotes, setOpenNotes] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [openHist, setOpenHist] = useState<number | null>(null);
@@ -92,6 +93,23 @@ export default function PostulacionesClient() {
     }
   }
 
+  function colSection(s: string, fullWidth: boolean) {
+    const col = searched.filter((a) => a.status === s);
+    return (
+      <section key={s} aria-label={LABELS[s]}
+        className={fullWidth ? "w-full rounded-2xl bg-stone-100/70 p-2.5" : "w-72 shrink-0 rounded-2xl bg-stone-100/70 p-2.5 sm:w-80"}>
+        <header className="flex items-center justify-between px-1.5 pb-2">
+          <h2 className="text-sm font-bold text-[#0a2156]">{LABELS[s]}</h2>
+          <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-stone-500">{col.length}</span>
+        </header>
+        <div className="space-y-2.5">
+          {col.length === 0 && <p className="px-1.5 py-3 text-xs font-medium text-stone-400">Vacío</p>}
+          {col.map(card)}
+        </div>
+      </section>
+    );
+  }
+
   function csv() {
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const lines = ["estado,titulo,empresa,ubicacion,categoria,fuente,postulado,actualizado,notas,url"];
@@ -118,6 +136,15 @@ export default function PostulacionesClient() {
     [searched]
   );
   const archived = useMemo(() => searched.filter((a) => ARCHIVE.includes(a.status)), [searched]);
+  const pipeCount = (s: string) => searched.filter((a) => a.status === s).length;
+
+  // en móvil se muestra una etapa por vez: si la activa quedó vacía, salta a la primera con contenido
+  useEffect(() => {
+    if (searched.some((a) => a.status === activeCol)) return;
+    const first = PIPE.find((s) => searched.some((a) => a.status === s));
+    if (first) setActiveCol(first);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searched]);
 
   function card(a: Application) {
     const staleDays = daysSince(a.updated_at);
@@ -240,22 +267,19 @@ export default function PostulacionesClient() {
         </div>
       ) : (
         <>
-          <div className="scrollbar-none -mx-4 mt-6 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-            {PIPE.map((s) => {
-              const col = searched.filter((a) => a.status === s);
-              return (
-                <section key={s} aria-label={LABELS[s]} className="w-72 shrink-0 rounded-2xl bg-stone-100/70 p-2.5 sm:w-80">
-                  <header className="flex items-center justify-between px-1.5 pb-2">
-                    <h2 className="text-sm font-bold text-[#0a2156]">{LABELS[s]}</h2>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-stone-500">{col.length}</span>
-                  </header>
-                  <div className="space-y-2.5">
-                    {col.length === 0 && <p className="px-1.5 py-3 text-xs font-medium text-stone-400">Vacío</p>}
-                    {col.map(card)}
-                  </div>
-                </section>
-              );
-            })}
+          {/* pestañas por etapa en móvil: una columna completa por vez */}
+          <div className="scrollbar-none -mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:hidden" role="tablist" aria-label="Etapas">
+            {PIPE.map((s) => (
+              <button key={s} role="tab" aria-selected={activeCol === s} onClick={() => setActiveCol(s)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold ${activeCol === s ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600"}`}>
+                {LABELS[s]} · {pipeCount(s)}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 sm:hidden">{colSection(activeCol, true)}</div>
+          {/* kanban horizontal en desktop */}
+          <div className="scrollbar-none -mx-4 mt-6 hidden gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex sm:px-0">
+            {PIPE.map((s) => colSection(s, false))}
           </div>
           {archived.length > 0 && (
             <section aria-label="Archivadas" className="mt-6">

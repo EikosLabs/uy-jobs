@@ -45,10 +45,13 @@ export async function POST(req: Request) {
     session.userId,
     body.oferta_id,
   ]);
-  const applied = status === "postulado" ? ", applied_at = COALESCE(applications.applied_at, now())" : "";
+  // applied_at se marca al llegar a postulado o más allá (aunque se salte etapas)
+  const APPLIED_THROUGH = ["postulado", "respuesta", "entrevista", "oferta"];
+  const marksApplied = APPLIED_THROUGH.includes(status);
+  const applied = marksApplied ? ", applied_at = COALESCE(applications.applied_at, now())" : "";
   const r = await pool.query(
-    `INSERT INTO applications (user_id, oferta_id, status, notes${status === "postulado" ? ", applied_at" : ""})
-     VALUES ($1,$2,$3,$4${status === "postulado" ? ", now()" : ""})
+    `INSERT INTO applications (user_id, oferta_id, status, notes${marksApplied ? ", applied_at" : ""})
+     VALUES ($1,$2,$3,$4${marksApplied ? ", now()" : ""})
      ON CONFLICT (user_id, oferta_id) DO UPDATE SET status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = now()${applied}
      RETURNING id, status`,
     [session.userId, body.oferta_id, status, notes]
