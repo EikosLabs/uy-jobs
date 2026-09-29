@@ -181,7 +181,7 @@ export default function OfertasApp({
 
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         {resp && !resp.error && !resp.facets.hasProfile && (
-          <Link href="/perfil" className="notice mt-4 transition hover:border-[#93c5fd] sm:mt-6">
+          <Link href="/perfil" className={`notice mt-4 transition hover:border-[#93c5fd] sm:mt-6 ${view === "swipe" ? "max-sm:hidden" : ""}`}>
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fcd116] text-[#0a2156]"><IconSparkle /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-bold">Subí tu CV y ordenamos las ofertas por cuánto encajás</span>
@@ -190,10 +190,10 @@ export default function OfertasApp({
             <span className="hidden shrink-0 text-sm font-bold text-[#0038a8] sm:block">Subir CV →</span>
           </Link>
         )}
-        <div className="flex flex-wrap items-baseline justify-between gap-2 pt-6">
-          <h1 className="font-[var(--font-display)] text-2xl font-bold">
+        <div className="flex items-center justify-between gap-2 pt-5 sm:pt-6">
+          <h1 className="min-w-0 truncate font-[var(--font-display)] text-xl font-bold sm:text-2xl">
             {f.q || f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority ? "Resultados" : "Ofertas destacadas"}
-            <span className="ml-2 text-base font-bold text-stone-400">{resp ? `${resp.total.toLocaleString("es-UY")} avisos` : ""}</span>
+            <span className="ml-2 hidden text-base font-bold text-stone-400 min-[400px]:inline sm:inline">{resp ? `${resp.total.toLocaleString("es-UY")} avisos` : ""}</span>
           </h1>
           <div className="flex rounded-xl border border-stone-200 bg-white p-0.5 text-sm font-bold" role="tablist" aria-label="Vista">
             <button role="tab" aria-selected={view === "lista"} onClick={() => setView("lista")}

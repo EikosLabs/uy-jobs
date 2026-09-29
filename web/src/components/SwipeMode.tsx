@@ -258,7 +258,7 @@ export function SwipeMode({
   const seenCount = saved + discarded;
 
   return (
-    <div className="mx-auto mt-6 max-w-md select-none">
+    <div className="mx-auto mt-4 max-w-md select-none sm:mt-6">
       <div className="flex items-center justify-between text-xs font-bold text-stone-500">
         <span>Ordenadas por match</span>
         <span className="tnum">
@@ -270,7 +270,7 @@ export function SwipeMode({
           style={{ width: `${Math.min(100, (seenCount / Math.max(1, seenCount + remaining.length)) * 100)}%` }} />
       </div>
 
-      <div className="relative mt-3" style={{ height: 480 }}>
+      <div className="relative mt-3" style={{ height: "clamp(380px, calc(100svh - 360px), 480px)" }}>
         {next && (
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white"
             style={{ transform: `scale(${0.95 + 0.05 * lift}) translateY(${10 - 10 * lift}px)`, opacity: 0.6 + 0.4 * lift, transition: dragging ? "none" : "transform .25s, opacity .25s" }}>
