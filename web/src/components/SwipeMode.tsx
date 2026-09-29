@@ -270,7 +270,7 @@ export function SwipeMode({
           style={{ width: `${Math.min(100, (seenCount / Math.max(1, seenCount + remaining.length)) * 100)}%` }} />
       </div>
 
-      <div className="relative mt-3" style={{ height: "clamp(340px, calc(100svh - 370px), 480px)" }}>
+      <div className="relative mt-3" style={{ height: "clamp(320px, calc(100svh - 370px), 480px)" }}>
         {next && (
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white"
             style={{ transform: `scale(${0.95 + 0.05 * lift}) translateY(${10 - 10 * lift}px)`, opacity: 0.6 + 0.4 * lift, transition: dragging ? "none" : "transform .25s, opacity .25s" }}>
