@@ -357,12 +357,19 @@ function Drawer({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadHist = useCallback(() => {
     fetch(`/api/postulaciones?history=${a.id}`)
       .then((r) => r.json())
       .then((d) => setHist(d.events ?? []))
       .catch(() => setHist([]));
-  }, [a.id, a.status]);
+  }, [a.id]);
+  useEffect(loadHist, [loadHist]);
+
+  // el historial se relee cuando el servidor ya registró el cambio
+  async function moveTo(s: string) {
+    if (s === a.status) return;
+    if (await onMove(a, s)) loadHist();
+  }
 
   useEffect(() => {
     panel.current?.focus();
@@ -401,7 +408,7 @@ function Drawer({
             <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Etapa</h3>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {[...PIPE, "rechazado"].map((s) => (
-                <button key={s} type="button" onClick={() => onMove(a, s)} aria-pressed={a.status === s}
+                <button key={s} type="button" onClick={() => moveTo(s)} aria-pressed={a.status === s}
                   className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-bold transition ${
                     a.status === s ? "border-[#0038a8] bg-[#eff6ff] text-[#0038a8]" : "border-[#e7e5e4] text-stone-600 hover:border-stone-300"
                   }`}>
@@ -457,11 +464,11 @@ function Drawer({
           </a>
           <div className="flex w-full items-center justify-between pt-1">
             {a.status !== "descartado" ? (
-              <button type="button" onClick={() => onMove(a, "descartado")} className="text-xs font-bold text-stone-400 hover:text-stone-600">
+              <button type="button" onClick={() => moveTo("descartado")} className="text-xs font-bold text-stone-400 hover:text-stone-600">
                 Archivar
               </button>
             ) : (
-              <button type="button" onClick={() => onMove(a, "guardada")} className="text-xs font-bold text-[#0038a8] hover:underline">
+              <button type="button" onClick={() => moveTo("guardada")} className="text-xs font-bold text-[#0038a8] hover:underline">
                 Restaurar a Guardadas
               </button>
             )}
