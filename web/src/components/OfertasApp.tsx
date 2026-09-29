@@ -116,7 +116,8 @@ export default function OfertasApp({
                   value={qDraft}
                   onChange={(e) => setQDraft(e.target.value)}
                   placeholder="Puesto, empresa o palabra clave…"
-                  className="field w-full pl-10"
+                  className="field w-full"
+                  style={{ paddingLeft: "2.5rem" }}
                   aria-label="Buscar ofertas"
                   type="search"
                 />
