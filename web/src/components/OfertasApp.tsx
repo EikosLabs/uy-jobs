@@ -181,7 +181,8 @@ export default function OfertasApp({
 
       <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         {resp && !resp.error && !resp.facets.hasProfile && (
-          <Link href="/perfil" className={`notice mt-4 transition hover:border-[#93c5fd] sm:mt-6 ${view === "swipe" ? "max-sm:hidden" : ""}`}>
+          <div className={view === "swipe" ? "max-sm:hidden" : ""}>
+          <Link href="/perfil" className="notice mt-4 transition hover:border-[#93c5fd] sm:mt-6">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fcd116] text-[#0a2156]"><IconSparkle /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-bold">Subí tu CV y ordenamos las ofertas por cuánto encajás</span>
@@ -189,6 +190,7 @@ export default function OfertasApp({
             </span>
             <span className="hidden shrink-0 text-sm font-bold text-[#0038a8] sm:block">Subir CV →</span>
           </Link>
+          </div>
         )}
         <div className="flex items-center justify-between gap-2 pt-5 sm:pt-6">
           <h1 className="min-w-0 truncate font-[var(--font-display)] text-xl font-bold sm:text-2xl">
