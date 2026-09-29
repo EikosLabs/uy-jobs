@@ -237,7 +237,14 @@ export default function OfertasApp({
             ))}
           </div>
         ) : view === "swipe" && resp && !resp.error ? (
-          <SwipeMode items={resp.data} onExit={() => setView("lista")} />
+          <SwipeMode
+            key={`${qs({ ...f, page: 1 })}|${resp.page}`}
+            items={resp.data}
+            query={qs({ ...f, page: 1 }).replace(/&?limit=50/, "")}
+            startPage={resp.page}
+            pages={resp.pages}
+            onExit={() => setView("lista")}
+          />
         ) : (
           <div className={`mt-6 grid gap-5 md:grid-cols-2 ${loading ? "opacity-60" : ""}`}>
             {(resp?.data ?? []).map((o) => (
