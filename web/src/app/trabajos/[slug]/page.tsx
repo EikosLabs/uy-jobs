@@ -86,7 +86,7 @@ export default async function TrabajosCat({ params }: { params: Promise<{ slug: 
           departamento y nivel, y recibir avisos de las que encajan con tu CV.
         </p>
         <div className="mt-4">
-          <Link href="/register" className="rounded-xl bg-[#0a2156] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0038a8]">
+          <Link href={`/register?next=${encodeURIComponent(`/ofertas?categoria=${cat}`)}`} className="btn-accent px-5 py-2.5 text-sm">
             Filtrar y recibir avisos →
           </Link>
         </div>

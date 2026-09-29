@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { safeNext } from "@/lib/next";
 
 const PROTECTED_PREFIXES = ["/ofertas", "/oferta", "/admin"];
 const GUEST_ONLY = ["/login", "/register"];
@@ -37,7 +38,8 @@ export async function proxy(req: NextRequest) {
     return withRef(NextResponse.redirect(login));
   }
   if (logged && (path === "/" || GUEST_ONLY.includes(path))) {
-    return withRef(NextResponse.redirect(new URL("/ofertas", req.nextUrl)));
+    const next = safeNext(req.nextUrl.searchParams.get("next"));
+    return withRef(NextResponse.redirect(new URL(next || "/ofertas", req.nextUrl)));
   }
   return withRef(NextResponse.next());
 }

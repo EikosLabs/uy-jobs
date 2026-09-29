@@ -80,7 +80,7 @@ export default async function EmpleosDepto({ params }: { params: Promise<{ slug:
           para filtrar por rubro, modalidad y nivel, y recibir avisos de las que encajan con tu CV.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/register" className="rounded-xl bg-[#0a2156] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#0038a8]">
+          <Link href={`/register?next=${encodeURIComponent(`/ofertas?departamento=${depto}`)}`} className="btn-accent px-5 py-2.5 text-sm">
             Ver todas y filtrar →
           </Link>
           <Link href="/mapa" className="rounded-xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-bold hover:bg-stone-50">
