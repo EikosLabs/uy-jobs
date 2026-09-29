@@ -40,7 +40,8 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { oferta_id?: number; status?: string; notes?: string };
   if (!body.oferta_id) return NextResponse.json({ error: "Falta oferta_id" }, { status: 400 });
   const status = STATUSES.includes(body.status as (typeof STATUSES)[number]) ? body.status! : "guardada";
-  const notes = String(body.notes ?? "").slice(0, 2000);
+  // Sin "notes" en el body se conservan las existentes (el cambio de etapa no las borra).
+  const notes = body.notes === undefined ? null : String(body.notes).slice(0, 2000);
   const prev = await pool.query("SELECT id, status FROM applications WHERE user_id = $1 AND oferta_id = $2", [
     session.userId,
     body.oferta_id,
@@ -51,8 +52,8 @@ export async function POST(req: Request) {
   const applied = marksApplied ? ", applied_at = COALESCE(applications.applied_at, now())" : "";
   const r = await pool.query(
     `INSERT INTO applications (user_id, oferta_id, status, notes${marksApplied ? ", applied_at" : ""})
-     VALUES ($1,$2,$3,$4${marksApplied ? ", now()" : ""})
-     ON CONFLICT (user_id, oferta_id) DO UPDATE SET status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = now()${applied}
+     VALUES ($1,$2,$3,COALESCE($4::text, '')${marksApplied ? ", now()" : ""})
+     ON CONFLICT (user_id, oferta_id) DO UPDATE SET status = EXCLUDED.status, notes = COALESCE($4::text, applications.notes), updated_at = now()${applied}
      RETURNING id, status`,
     [session.userId, body.oferta_id, status, notes]
   );
