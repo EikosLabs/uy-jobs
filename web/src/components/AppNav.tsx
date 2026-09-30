@@ -21,7 +21,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
         { href: "/ofertas", label: "Ofertas", current: active === "ofertas" },
         { href: "/mapa", label: "Mapa", current: active === "mapa" },
         { href: "/postulaciones", label: "Postulaciones", current: active === "postulaciones" },
-        { href: "/notificaciones", label: "Avisos", badge: unread, current: active === "avisos" },
+        { href: "/notificaciones", label: "Matches", badge: unread, current: active === "avisos" },
         { href: "/referidos", label: "Invitar", current: active === "referidos" },
         { href: "/perfil", label: "Mi perfil", current: active === "perfil" },
         ...(session.isAdmin ? [{ href: "/admin", label: "Admin", current: active === "admin" } as NavLink] : []),
@@ -49,7 +49,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
             {link("/ofertas", "Ofertas", "ofertas")}
             {link("/mapa", "Mapa", "mapa")}
             {link("/postulaciones", "Postulaciones", "postulaciones")}
-            {link("/notificaciones", "Avisos", "avisos", unread)}
+            {link("/notificaciones", "Matches", "avisos", unread)}
             {link("/referidos", "Invitar", "referidos")}
             {link("/perfil", "Mi perfil", "perfil")}
             {session.isAdmin && link("/admin", "Admin", "admin")}
@@ -58,7 +58,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
         <div className="ml-auto flex items-center gap-2">
           {session ? (
             <>
-              <Link href="/notificaciones" title="Avisos"
+              <Link href="/notificaciones" title="Matches" aria-label="Matches"
                 className="relative rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-sm font-bold text-[#0a2156] hover:bg-stone-50 md:hidden">
                 <IconBell />
                 {unread > 0 && (

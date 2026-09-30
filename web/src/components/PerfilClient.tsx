@@ -21,6 +21,26 @@ export default function PerfilClient() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [fileErr, setFileErr] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+
+  function pick(f: File | null | undefined) {
+    setFileErr("");
+    if (!f) return;
+    const okType = /\.(pdf|png|jpe?g)$/i.test(f.name);
+    if (!okType) return setFileErr("Ese formato no lo leemos. Subí un PDF, PNG o JPG.");
+    if (f.size > 6 * 1024 * 1024) return setFileErr("El archivo pesa más de 6 MB. Probá con un PDF más liviano.");
+    setFile(f);
+  }
+
+  const checks: [string, boolean][] = [
+    ["CV", !!profile?.cv_text],
+    ["Título", !!profile?.titulo],
+    ["Rubros", intereses.length > 0],
+    ["Habilidades", skills.length > 0],
+    ["Experiencia", !!profile?.experiencia],
+  ];
+  const pct = Math.round((checks.filter(([, v]) => v).length / checks.length) * 100);
 
   useEffect(() => {
     fetch("/api/perfil")
@@ -66,10 +86,28 @@ export default function PerfilClient() {
     <div className="mx-auto max-w-3xl px-4 sm:px-6">
       <div className="card mt-6 p-6 sm:p-8">
           <p className="text-xs font-bold uppercase tracking-widest text-[#0038a8]">Tu perfil profesional</p>
-          <h1 className="mt-2 font-[var(--font-display)] text-3xl font-bold">Mi CV y mis matches</h1>
+          <h1 className="mt-2 font-[var(--font-display)] text-2xl font-bold sm:text-3xl">Mi CV y mis matches</h1>
           <p className="mt-2 text-sm font-medium text-stone-600">
-            Subí tu CV (PDF o foto). Lo leemos con OCR, armamos tu perfil y te avisamos de ofertas que encajan.
+            Con tu CV ordenamos las ofertas por cuánto encajás y te avisamos cada mañana de las nuevas.
           </p>
+          {!loading && (
+            <div className="mt-5 rounded-xl border border-[#e7e5e4] bg-[#faf9f7] p-4">
+              <div className="flex items-center justify-between text-sm font-bold">
+                <span>Perfil completo al {pct}%</span>
+                <span className="text-xs font-semibold text-stone-500">{pct === 100 ? "¡Listo para los mejores matches!" : "Cuanto más completo, más preciso el match"}</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#e7e5e4]">
+                <div className="h-full rounded-full bg-[#0038a8] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold">
+                {checks.map(([k, v]) => (
+                  <span key={k} className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 ${v ? "bg-green-50 text-green-700" : "bg-white text-stone-400 ring-1 ring-[#e7e5e4]"}`}>
+                    {v ? "✓" : "○"} {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {matches > 0 && (
             <Link href="/notificaciones" className="notice mt-5 justify-between font-bold transition hover:border-[#93c5fd]">
               <span><span className="tnum mr-1.5 rounded-md bg-[#fcd116] px-1.5 py-0.5">{matches}</span> ofertas encajan con tu perfil</span>
@@ -115,20 +153,35 @@ export default function PerfilClient() {
           ) : (
             <form onSubmit={save} className="mt-6 space-y-4">
               <div>
-                <label className="text-sm font-bold">Archivo del CV (PDF, PNG o JPG · máx 6 MB)</label>
-                <label className="field mt-1.5 flex cursor-pointer items-center gap-3 !py-3">
-                  <span className="shrink-0 rounded-lg bg-[#0a2156] px-3 py-1.5 text-xs font-bold text-white">
-                    Elegir archivo
+                <span className="text-sm font-bold">Tu CV</span>
+                <label
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files?.[0]); }}
+                  className={`mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition has-focus-visible:outline-2 has-focus-visible:outline-[#0038a8] ${
+                    dragOver ? "border-[#0038a8] bg-[#eff6ff]" : file ? "border-green-300 bg-green-50/50" : "border-stone-300 bg-[#faf9f7] hover:border-[#0038a8]"
+                  }`}>
+                  <span className={`grid h-11 w-11 place-items-center rounded-xl ${file ? "bg-green-100 text-green-700" : "bg-white text-[#0038a8] ring-1 ring-[#e7e5e4]"}`}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      {file ? <path d="M5 12l5 5L20 7" /> : <><path d="M12 16V4" /><path d="M7 9l5-5 5 5" /><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3" /></>}
+                    </svg>
                   </span>
-                  <span className="truncate text-sm font-medium text-stone-500">
-                    {file ? file.name : "Ningún archivo seleccionado"}
-                  </span>
-                  <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="sr-only" />
+                  {file ? (
+                    <>
+                      <span className="max-w-full truncate text-sm font-bold text-[#1c1917]">{file.name}</span>
+                      <span className="text-xs font-medium text-stone-500">{(file.size / 1024 / 1024).toFixed(1)} MB · tocá para cambiarlo · se lee al guardar</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm font-bold text-[#1c1917]">
+                        {profile?.cv_text ? "Ya tenés un CV cargado. Soltá otro para reemplazarlo" : "Arrastrá tu CV acá o tocá para elegirlo"}
+                      </span>
+                      <span className="text-xs font-medium text-stone-500">PDF, PNG o JPG · hasta 6 MB · también sirve una foto</span>
+                    </>
+                  )}
+                  <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => pick(e.target.files?.[0])} className="sr-only" />
                 </label>
-                {profile?.cv_text && !file && (
-                  <p className="mt-1.5 text-xs font-medium text-stone-500">Ya hay un CV cargado. Subí otro para reemplazarlo.</p>
-                )}
+                {fileErr && <p role="alert" className="notice notice-error mt-2 text-xs font-semibold">{fileErr}</p>}
               </div>
               <div>
                 <label className="text-sm font-bold">Título profesional</label>
@@ -175,7 +228,7 @@ export default function PerfilClient() {
               )}
               {msg && <p role="status" className="notice text-sm font-bold">{msg}</p>}
               <button disabled={saving} type="submit" className="btn-accent w-full py-3">
-                {saving ? "Leyendo CV…" : "Guardar perfil"}
+                {saving ? (file ? "Leyendo tu CV… puede tardar unos segundos" : "Guardando…") : file ? "Guardar y leer mi CV" : "Guardar perfil"}
               </button>
             </form>
           )}
