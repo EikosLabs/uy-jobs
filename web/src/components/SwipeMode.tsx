@@ -307,7 +307,7 @@ export function SwipeMode({
 
         {hint && (
           <button type="button" onClick={dismissHint}
-            className="absolute inset-x-6 bottom-20 z-30 rounded-2xl bg-[#0a2156]/95 px-4 py-3 text-left text-sm text-white shadow-lg">
+            className="absolute inset-x-6 bottom-20 z-20 rounded-2xl bg-[#0a2156]/95 px-4 py-3 text-left text-sm text-white shadow-lg">
             <span className="block font-bold">Deslizá para decidir</span>
             <span className="mt-0.5 block text-white/75">→ guardar · ← paso · tocá para abrir. En compu: flechas y Z para deshacer.</span>
             <span className="mt-1.5 block text-xs font-bold text-[#fcd116]">Entendido</span>

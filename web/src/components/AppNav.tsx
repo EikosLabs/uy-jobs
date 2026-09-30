@@ -41,7 +41,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
     </Link>
   );
   return (
-    <header className="sticky top-0 z-20 border-b border-[#e7e5e4] bg-white">
+    <header className="sticky top-0 z-40 border-b border-[#e7e5e4] bg-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 sm:gap-2 sm:px-6">
         <Logo />
         {session && (
