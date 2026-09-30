@@ -1,4 +1,4 @@
-import { extractSkills, norm } from "@/lib/skills";
+import { extractSkills } from "@/lib/skills";
 
 export type Profile = {
   user_id: number;
@@ -12,8 +12,9 @@ export type Scored = { score: number; shared: string[]; missing: string[]; catMa
 
 const SENIOR_KEYS = ["senior", "junior", "lead"];
 
-/** Umbral para mostrar matches (badges, radiografía). Avisos push usan 40. */
-export const MATCH_DISPLAY = 35;
+/** Umbral (motor v2) para mostrar "match" en tarjetas y radiografía; las alertas usan 55.
+ *  Calibrado en web/eval: ≥45 incluye 61% de los avisos relevantes y 6% de ruido. */
+export const MATCH_DISPLAY = 45;
 
 /** Habilidades compartidas (sin señales de seniority). */
 export function sharedSkills(ofertaText: string, skills: string[]): string[] {
@@ -51,40 +52,10 @@ export function resolveIntereses(
   return explicit.length ? explicit : implicitIntereses(ofertas, skills);
 }
 
-/** Puntaje 0-100 de una oferta para un perfil. */
-export function scoreOferta(
-  oferta: { titulo: string | null; descripcion: string | null; categoria: string | null; seniority: string | null; modalidad: string | null },
-  profile: { skills: string[]; intereses: string[]; titulo: string }
-): Scored {
-  const oText = `${oferta.titulo ?? ""} ${oferta.descripcion ?? ""}`;
-  const oSkills = extractSkills(oText);
-  const shared = sharedSkills(oText, profile.skills);
-  const missing = oSkills.filter((s) => !profile.skills.includes(s) && !SENIOR_KEYS.includes(s));
-
-  const cat = (oferta.categoria ?? "").toLowerCase();
-  const catMatch = !!cat && profile.intereses.map((i) => norm(i).trim()).includes(norm(cat).trim());
-
-  const cvSenior = profile.skills.filter((s) => SENIOR_KEYS.includes(s));
-  const oSenior = oSkills.filter((s) => SENIOR_KEYS.includes(s));
-  const seniorMatch = cvSenior.length > 0 && oSenior.length > 0 && cvSenior.some((s) => oSenior.includes(s));
-
-  let score = Math.min(shared.length, 5) * 12;
-  if (catMatch) score += 25;
-  if (seniorMatch) score += 15;
-  // alineación estudiante: CV junior/estudiante + aviso para estudiantes
-  const oTags = `${oferta.categoria ?? ""} ${(oferta as { tags?: string }).tags ?? ""}`.toLowerCase();
-  const cvStudent = profile.skills.some((s) => ["estudiante", "sin_experiencia", "junior"].includes(s));
-  const ofStudent = /estudiante|primer-empleo|primer empleo|junior|pasant/.test(oTags);
-  if (cvStudent && ofStudent) score += 15;
-  // bonus: el titulo del perfil menciona algo del aviso
-  const oTitle = norm(oferta.titulo ?? "");
-  if (oTitle && norm(profile.titulo).split(/\s+/).some((w) => w.length > 4 && oTitle.includes(w))) score += 10;
-
-  return { score: Math.min(100, score), shared: shared.slice(0, 8), missing: missing.slice(0, 6), catMatch };
-}
+/* El puntaje vive en recommend.ts (motor v2). */
 
 export function matchLabel(score: number) {
   if (score >= 70) return "Match alto";
-  if (score >= 40) return "Buen match";
+  if (score >= MATCH_DISPLAY) return "Buen match";
   return "Match bajo";
 }

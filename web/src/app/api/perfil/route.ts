@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { extractSkills } from "@/lib/skills";
-import { implicitIntereses, MATCH_DISPLAY, scoreOferta } from "@/lib/match";
+import { MATCH_DISPLAY } from "@/lib/match";
+import { getIndex, loadProfile } from "@/lib/reco-server";
+import { scoreMatch } from "@/lib/recommend";
 import { ocrImage, pdfToText } from "@/lib/cv";
 import { s3, s3Put } from "@/lib/s3";
 
@@ -24,61 +26,30 @@ export async function GET() {
   const user0 = await pool.query("SELECT intereses FROM users WHERE id = $1", [session.userId]);
   const intereses: string[] = String(user0.rows[0]?.intereses || "").split(",").filter(Boolean);
   if (p && (p.skills || p.cv_text)) {
-    const o = await pool.query("SELECT titulo, descripcion, categoria, seniority, modalidad FROM ofertas ORDER BY id DESC LIMIT 2000");
-    const skills = (p.skills || "").split(",").filter(Boolean);
-    const usedImplicit = !intereses.length;
-    const effIntereses = usedImplicit ? implicitIntereses(o.rows, skills) : intereses;
-    const scored = o.rows.map((of) => ({ of, s: scoreOferta(of, { skills, intereses: effIntereses, titulo: p.titulo || "" }) }));
-    matches = scored.filter((x) => x.s.score >= MATCH_DISPLAY).length;
-    // rubros sugeridos: categorías con más matches
-    const byCat = new Map<string, number>();
-    for (const x of scored) {
-      if (x.s.score < MATCH_DISPLAY) continue;
-      const c = (x.of.categoria || "otros").toLowerCase();
-      byCat.set(c, (byCat.get(c) ?? 0) + 1);
-    }
-    suggested = [...byCat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([categoria, n]) => ({ categoria, n }));
-    if (usedImplicit) {
-      // con intereses implícitos manda la afinidad, no el volumen
-      const rank = new Map(effIntereses.map((c, i) => [c, i]));
-      suggested.sort((a, b) => (rank.get(a.categoria) ?? 99) - (rank.get(b.categoria) ?? 99));
-    }
-    // brechas: habilidades pedidas en tus rubros que no tenés
-    // ámbito: rubros sugeridos, o rubros con alguna afinidad, o top por volumen
-    let scope: Set<string>;
-    if (usedImplicit) {
-      scope = new Set(effIntereses.slice(0, 2));
-    } else if (suggested.length) {
-      const top = suggested[0]?.n ?? 0;
-      scope = new Set(suggested.filter((s) => s.n >= Math.max(10, top * 0.4)).map((s) => s.categoria));
-    } else {
-      const affinity = new Map<string, number>();
-      for (const x of scored) {
-        if (!x.s.shared.length) continue;
+    const { index, offers } = await getIndex(pool);
+    const prof = await loadProfile(pool, session.userId, index);
+    if (prof) {
+      const scored = [...offers.values()].map((of) => ({ of, s: scoreMatch(of, prof, index) }));
+      const good = scored.filter((x) => x.s.score >= MATCH_DISPLAY);
+      matches = good.length;
+      // rubros donde más encajás
+      const byCat = new Map<string, number>();
+      for (const x of good) {
         const c = (x.of.categoria || "otros").toLowerCase();
-        affinity.set(c, (affinity.get(c) ?? 0) + 1);
+        byCat.set(c, (byCat.get(c) ?? 0) + 1);
       }
-      const ranked = [...affinity.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
-      if (!ranked.length) {
-        const vol = new Map<string, number>();
-        for (const x of scored) {
-          const c = (x.of.categoria || "otros").toLowerCase();
-          vol.set(c, (vol.get(c) ?? 0) + 1);
+      suggested = [...byCat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([categoria, n]) => ({ categoria, n }));
+      // brechas: lo que más piden los avisos que casi encajan con vos y no tenés
+      const near = scored.filter((x) => x.s.score >= 30);
+      const demand = new Map<string, number>();
+      for (const x of near) {
+        for (const sk of x.s.missing) {
+          if (GAP_IGNORE.has(sk)) continue;
+          demand.set(sk, (demand.get(sk) ?? 0) + 1);
         }
-        ranked.push(...[...vol.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c));
       }
-      scope = new Set(ranked);
+      gaps = [...demand.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([skill, n]) => ({ skill, n }));
     }
-    const demand = new Map<string, number>();
-    for (const x of scored) {
-      const c = (x.of.categoria || "otros").toLowerCase();
-      if (scope.size && !scope.has(c)) continue;
-      for (const sk of x.s.missing) {
-        if (GAP_IGNORE.has(sk)) continue;
-        demand.set(sk, (demand.get(sk) ?? 0) + 1);
-      }
-    }
-    gaps = [...demand.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([skill, n]) => ({ skill, n }));
   }
   return NextResponse.json({ profile: p, matches, gaps, suggested, intereses });
 }

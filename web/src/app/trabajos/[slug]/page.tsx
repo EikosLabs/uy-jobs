@@ -14,6 +14,12 @@ const PRETTY: Record<string, string> = {
   logistica: "logística",
   atencion_cliente: "atención al cliente",
   hoteleria_turismo: "hotelería y turismo",
+  finanzas: "finanzas y contabilidad",
+  rrhh: "recursos humanos",
+  ingenieria: "ingeniería",
+  servicios: "limpieza y seguridad",
+  gastronomia: "gastronomía",
+  educacion: "educación",
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

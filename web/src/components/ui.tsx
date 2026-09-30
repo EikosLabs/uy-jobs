@@ -141,7 +141,7 @@ export function Chip({ children, tone = "zinc" }: { children: React.ReactNode; t
 
 export { salaryLine } from "@/lib/format";
 
-export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; shared?: string[] }) {
+export function OfertaCard({ o, match, shared, reasons }: { o: Oferta; match?: number; shared?: string[]; reasons?: string[] }) {
   const salary = salaryLine(o);
   const showMatch = match !== undefined && match >= MATCH_DISPLAY;
   return (
@@ -169,9 +169,11 @@ export function OfertaCard({ o, match, shared }: { o: Oferta; match?: number; sh
         {o.modalidad && <Chip tone="sky">{modalidadLabel(o.modalidad)}</Chip>}
         {o.seniority && <Chip tone="zinc">{seniorityLabel(o.seniority)}</Chip>}
       </div>
-      {showMatch && !!shared?.length && (
+      {showMatch && (!!shared?.length || !!reasons?.length) && (
         <p className="mt-2.5 text-xs font-semibold text-[#0038a8]">
-          Coincidís en {shared.map(tagLabel).join(" · ")}
+          {[shared?.length ? `Coincidís en ${shared.slice(0, 3).map(tagLabel).join(", ")}` : "", ...(reasons ?? []).filter((r) => !r.startsWith("Coincidís")).slice(0, 2)]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       )}
       {o.descripcion && (

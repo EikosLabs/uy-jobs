@@ -10,3 +10,4 @@ node_modules/
 .next/
 .env
 .env.local
+web/eval/offers.json

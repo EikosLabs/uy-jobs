@@ -17,15 +17,16 @@ type Facets = {
 };
 
 type Resp = {
+  orden?: "relevancia" | "recientes";
   total: number;
   page: number;
   pages: number;
-  data: (Oferta & { match?: number; matchShared?: string[]; matchMissing?: string[] })[];
+  data: (Oferta & { match?: number; matchShared?: string[]; matchMissing?: string[]; matchReasons?: string[] })[];
   facets: Facets;
   error?: string;
 };
 
-export type Filters = { q: string; categoria: string; modalidad: string; fuente: string; departamento: string; seniority: string; page: number };
+export type Filters = { q: string; categoria: string; modalidad: string; fuente: string; departamento: string; seniority: string; orden?: string; page: number };
 
 function qs(f: Filters) {
   const p = new URLSearchParams();
@@ -35,6 +36,7 @@ function qs(f: Filters) {
   if (f.fuente) p.set("fuente", f.fuente);
   if (f.departamento) p.set("departamento", f.departamento);
   if (f.seniority) p.set("seniority", f.seniority);
+  if (f.orden) p.set("orden", f.orden);
   if (f.page > 1) p.set("page", String(f.page));
   p.set("limit", "50");
   return p.toString();
@@ -194,9 +196,17 @@ export default function OfertasApp({
         )}
         <div className="flex items-center justify-between gap-2 pt-5 sm:pt-6">
           <h1 className="min-w-0 truncate font-[var(--font-display)] text-xl font-bold sm:text-2xl">
-            {f.q || f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority ? "Resultados" : "Ofertas destacadas"}
+            {f.q || f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority ? "Resultados" : resp?.orden === "relevancia" ? "Para vos" : "Ofertas recientes"}
             <span className="ml-2 hidden text-base font-bold text-stone-400 min-[400px]:inline sm:inline">{resp ? `${resp.total.toLocaleString("es-UY")} avisos` : ""}</span>
           </h1>
+          <div className="flex items-center gap-2">
+          {resp?.facets.hasProfile && (
+            <select value={f.orden || (resp?.orden ?? "relevancia")} onChange={(e) => set({ orden: e.target.value })}
+              aria-label="Ordenar" className="hidden rounded-xl border border-stone-200 bg-white px-2.5 py-1.5 text-sm font-bold text-stone-600 sm:block">
+              <option value="relevancia">Más afines primero</option>
+              <option value="recientes">Más recientes primero</option>
+            </select>
+          )}
           <div className="flex rounded-xl border border-stone-200 bg-white p-0.5 text-sm font-bold" role="tablist" aria-label="Vista">
             <button role="tab" aria-selected={view === "lista"} onClick={() => setView("lista")}
               className={`rounded-lg px-3 py-1.5 ${view === "lista" ? "bg-[#0a2156] text-white" : "text-stone-500"}`}>
@@ -206,6 +216,7 @@ export default function OfertasApp({
               className={`rounded-lg px-3 py-1.5 ${view === "swipe" ? "bg-[#0a2156] text-white" : "text-stone-500"}`}>
               Swipe
             </button>
+          </div>
           </div>
         </div>
 
@@ -256,7 +267,7 @@ export default function OfertasApp({
         ) : (
           <div className={`mt-6 grid gap-5 md:grid-cols-2 ${loading ? "opacity-60" : ""}`}>
             {(resp?.data ?? []).map((o) => (
-              <OfertaCard key={o.id} o={o} match={o.match} shared={o.matchShared} />
+              <OfertaCard key={o.id} o={o} match={o.match} shared={o.matchShared} reasons={o.matchReasons} />
             ))}
           </div>
         )}

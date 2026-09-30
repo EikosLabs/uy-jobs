@@ -342,7 +342,7 @@ export function SwipeMode({
 
 /** Contenido de una tarjeta (la actual y la que asoma detrás). */
 function CardBody({ o }: { o: DeckItem }) {
-  const showMatch = o.match !== undefined && o.match >= 35;
+  const showMatch = o.match !== undefined && o.match >= 45;
   return (
     <>
       <div className="flex items-start gap-3 p-5 pb-0">

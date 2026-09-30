@@ -24,9 +24,9 @@ export type Oferta = {
 };
 
 export const CATEGORIAS = [
-  "tecnologia", "ventas", "administracion", "logistica", "atencion_cliente",
-  "gerencia", "oficios", "operarios", "salud", "marketing",
-  "hoteleria_turismo", "gastronomia", "educacion", "otros",
+  "tecnologia", "ventas", "administracion", "finanzas", "rrhh", "logistica", "atencion_cliente",
+  "marketing", "ingenieria", "oficios", "operarios", "salud", "hoteleria_turismo", "gastronomia",
+  "educacion", "servicios", "gerencia", "otros",
 ];
 
 export const MODALIDADES = ["remoto", "hibrido"];

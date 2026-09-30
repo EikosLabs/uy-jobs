@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { MATCH_DISPLAY } from "@/lib/match";
+import { getIndex, loadProfile } from "@/lib/reco-server";
+import { label, scoreMatch } from "@/lib/recommend";
 
 /** Lista notificaciones con datos de la oferta. */
 export async function GET() {
@@ -22,23 +25,24 @@ export async function GET() {
   // Top matches en vivo (el cron genera max 25/día; esto muestra el resto)
   let top: unknown[] = [];
   try {
-    const prof = await pool.query("SELECT titulo, skills FROM profiles WHERE user_id = $1", [session.userId]);
-    const skills = String(prof.rows[0]?.skills || "").split(",").filter(Boolean);
-    if (skills.length) {
-      const uu = await pool.query("SELECT intereses FROM users WHERE id = $1", [session.userId]);
-      const intereses = String(uu.rows[0]?.intereses || "").split(",").filter(Boolean);
-      const titulo = prof.rows[0]?.titulo || "";
-      const { scoreOferta } = await import("@/lib/match");
-      const o = await pool.query(
-        "SELECT id, titulo, empresa, ubicacion, categoria, modalidad, fuente, descripcion, seniority FROM ofertas ORDER BY id DESC LIMIT 1500"
-      );
-      const seen = new Set(r.rows.map((x) => x.oferta_id));
-      top = o.rows
-        .map((of) => ({ of, s: scoreOferta(of, { skills, intereses, titulo }) }))
-        .filter((x) => x.s.score >= 40 && !seen.has(x.of.id))
-        .sort((a, b) => b.s.score - a.s.score)
-        .slice(0, 20)
-        .map((x) => ({ ...x.of, score: x.s.score, detail: x.s.shared.join(", ") }));
+    const { index, offers } = await getIndex(pool);
+    const prof = await loadProfile(pool, session.userId, index);
+    if (prof && (prof.skillSet.size || prof.cv_text)) {
+      const apps = await pool.query("SELECT oferta_id FROM applications WHERE user_id = $1", [session.userId]);
+      const seen = new Set([...r.rows.map((x) => Number(x.oferta_id)), ...apps.rows.map((x) => Number(x.oferta_id))]);
+      const best = [...offers.values()]
+        .filter((o) => !seen.has(o.id!))
+        .map((o) => ({ o, m: scoreMatch(o, prof, index) }))
+        .filter((x) => x.m.score >= MATCH_DISPLAY)
+        .sort((a, b) => b.m.score - a.m.score)
+        .slice(0, 20);
+      const rows = best.length
+        ? (await pool.query("SELECT id, titulo, empresa, ubicacion, categoria, modalidad, fuente FROM ofertas WHERE id = ANY($1::bigint[])", [best.map((x) => x.o.id)])).rows
+        : [];
+      const byId = new Map(rows.map((x) => [Number(x.id), x]));
+      top = best
+        .filter((x) => byId.has(x.o.id!))
+        .map((x) => ({ ...byId.get(x.o.id!), score: x.m.score, detail: x.m.shared.slice(0, 4).map(label).join(", ") }));
     }
   } catch {
     top = [];

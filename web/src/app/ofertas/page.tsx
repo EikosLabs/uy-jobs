@@ -24,6 +24,7 @@ export default async function Ofertas({
     fuente: str(p, "fuente"),
     departamento: str(p, "departamento"),
     seniority: str(p, "seniority"),
+    orden: str(p, "orden"),
     page: Math.max(1, parseInt(str(p, "page") || "1", 10) || 1),
   };
   return (

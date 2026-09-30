@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { implicitIntereses, scoreOferta } from "@/lib/match";
+import { getIndex, loadProfile } from "@/lib/reco-server";
+import { label, scoreMatch, type MatchResult } from "@/lib/recommend";
 import { FUENTES } from "@/lib/supabase";
 
 const PAGE_SIZE_MAX = 100;
@@ -56,35 +57,41 @@ export async function GET(req: Request) {
     where.push(`seniority = $${vals.length}`);
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const ordenParam = u.searchParams.get("orden");
   try {
-    const c = await pool.query(`SELECT count(*)::int AS n FROM ofertas ${whereSql}`, vals);
-    const total = c.rows[0]?.n ?? 0;
-    const data = await pool.query(
-      `SELECT * FROM ofertas ${whereSql} ORDER BY fecha_scrapeo DESC NULLS LAST, id DESC LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
-      [...vals, limit, (page - 1) * limit]
-    );
-    // perfil para matches + facets en una sola respuesta (SPA)
-    let profSkills: string[] = [];
-    let profIntereses: string[] = [];
-    let profTitulo = "";
-    const prof = await pool.query("SELECT titulo, skills FROM profiles WHERE user_id = $1", [session.userId]);
-    if (prof.rows[0]) {
-      profSkills = String(prof.rows[0].skills || "").split(",").filter(Boolean);
-      profTitulo = prof.rows[0].titulo || "";
-      const uu = await pool.query("SELECT intereses FROM users WHERE id = $1", [session.userId]);
-      profIntereses = String(uu.rows[0]?.intereses || "").split(",").filter(Boolean);
+    const { index, offers } = await getIndex(pool);
+    const prof = await loadProfile(pool, session.userId, index);
+    // por defecto, si hay perfil: relevancia sobre TODO el resultado (no solo la página)
+    const orden = ordenParam === "recientes" || !prof ? "recientes" : "relevancia";
+    const attach = (o: Record<string, unknown>, m: MatchResult | null) =>
+      m ? { ...o, match: m.score, matchShared: m.shared.map(label), matchMissing: m.missing.map(label), matchReasons: m.reasons } : o;
+
+    let total = 0;
+    let rows: Record<string, unknown>[] = [];
+    if (orden === "relevancia" && prof) {
+      const ids = await pool.query(`SELECT id, fecha_scrapeo FROM ofertas ${whereSql}`, vals);
+      total = ids.rowCount ?? 0;
+      const ranked = ids.rows
+        .map((r) => {
+          const o = offers.get(Number(r.id));
+          const m = o ? scoreMatch(o, prof, index) : null;
+          return { id: Number(r.id), m, s: m?.score ?? -1, t: r.fecha_scrapeo ? new Date(r.fecha_scrapeo).getTime() : 0 };
+        })
+        .sort((a, b) => b.s - a.s || b.t - a.t || b.id - a.id);
+      const pageItems = ranked.slice((page - 1) * limit, page * limit);
+      const full = await pool.query("SELECT * FROM ofertas WHERE id = ANY($1::bigint[])", [pageItems.map((x) => x.id)]);
+      const byId = new Map(full.rows.map((o) => [Number(o.id), o]));
+      rows = pageItems.filter((x) => byId.has(x.id)).map((x) => attach(byId.get(x.id)!, x.m));
+    } else {
+      const c = await pool.query(`SELECT count(*)::int AS n FROM ofertas ${whereSql}`, vals);
+      total = c.rows[0]?.n ?? 0;
+      const data = await pool.query(
+        `SELECT * FROM ofertas ${whereSql} ORDER BY fecha_scrapeo DESC NULLS LAST, id DESC LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
+        [...vals, limit, (page - 1) * limit]
+      );
+      rows = data.rows.map((o) => attach(o, prof ? scoreMatch(o, prof, index) : null));
     }
-    let implicit: string[] = [];
-    if (profSkills.length && !profIntereses.length) {
-      const sample = await pool.query("SELECT categoria, titulo, descripcion FROM ofertas ORDER BY id DESC LIMIT 2000");
-      implicit = implicitIntereses(sample.rows, profSkills);
-    }
-    const rows = data.rows.map((o) => {
-      if (!profSkills.length) return o;
-      const effIntereses = profIntereses.length ? profIntereses : implicit;
-      const s = scoreOferta(o, { skills: profSkills, intereses: effIntereses, titulo: profTitulo });
-      return { ...o, match: s.score, matchShared: s.shared, matchMissing: s.missing };
-    });
+    const prof0 = await pool.query("SELECT 1 FROM profiles WHERE user_id = $1", [session.userId]);
     const counts: Record<string, number> = {};
     for (const f of FUENTES) {
       const r = await pool.query("SELECT count(*)::int AS n FROM ofertas WHERE fuente = $1", [f]);
@@ -105,12 +112,13 @@ export async function GET(req: Request) {
         session.userId,
       ])
     ).rows[0]?.n ?? 0;
-    const hasProfile = prof.rows[0] ? true : false;
+    const hasProfile = !!prof0.rows[0];
     return NextResponse.json({
       total,
       page,
       limit,
       pages: Math.max(1, Math.ceil(total / limit)),
+      orden,
       data: rows,
       facets: { counts, remotos, topCats, deptCounts, seniorityCounts, unread, hasProfile },
     });

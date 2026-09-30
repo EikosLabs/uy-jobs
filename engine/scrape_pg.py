@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from scraper import load_proxies, scrape  # noqa: E402
 from enrich import CATS, MODAL, SENIOR, classify, dept_of, first_match, mine_experiencia, mine_jornada, mine_salary, parse_salary  # noqa: E402
+from nlp import classify_offer, modalidad_of, seniority_of  # noqa: E402
 
 UPSERT = """
 INSERT INTO ofertas
@@ -85,9 +86,10 @@ def enrich_all(dsn, full=False):
     n = 0
     for oid, tit, desc, req, cont, sal, ubi, jor in rows:
         text = " ".join(x or "" for x in (tit, desc, req, cont)).lower()
-        cat = classify(text)
-        modal = first_match(text, MODAL)
-        sen = first_match(text, SENIOR)
+        # v2 (nlp.py): el título manda, palabras completas, ES + EN
+        cat, _conf = classify_offer(tit, desc, req)
+        modal = modalidad_of(tit, " ".join(x or "" for x in (desc, cont)))
+        sen = seniority_of(tit, desc)
         tags = [cat]
         if modal:
             tags.append(modal)

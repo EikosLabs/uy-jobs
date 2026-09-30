@@ -6,7 +6,8 @@ import { AppNav } from "@/components/AppNav";
 import { Chip, CompanyAvatar } from "@/components/ui";
 import { ApplyWidget } from "@/components/ApplyWidget";
 import { CoverLetterWidget } from "@/components/CoverLetterWidget";
-import { implicitIntereses, scoreOferta } from "@/lib/match";
+import { getIndex, loadProfile } from "@/lib/reco-server";
+import { label, scoreMatch, similarTo } from "@/lib/recommend";
 import type { Oferta } from "@/lib/supabase";
 import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
 
@@ -34,20 +35,18 @@ export default async function OfertaPage({
 
   const tags = (o.tags ?? "").split(",").filter(Boolean);
 
-  // compatibilidad con el perfil del usuario (capa asistente)
-  const prof = await pool.query("SELECT titulo, skills FROM profiles WHERE user_id = $1", [session.userId]);
-  const profSkills = String(prof.rows[0]?.skills || "").split(",").filter(Boolean);
-  let compat: { score: number; shared: string[]; missing: string[] } | null = null;
-  if (profSkills.length) {
-    const uu = await pool.query("SELECT intereses FROM users WHERE id = $1", [session.userId]);
-    const explicit = String(uu.rows[0]?.intereses || "").split(",").filter(Boolean);
-    const sample = explicit.length
-      ? null
-      : await pool.query("SELECT categoria, titulo, descripcion FROM ofertas ORDER BY id DESC LIMIT 2000");
-    const intereses = explicit.length ? explicit : implicitIntereses(sample?.rows ?? [], profSkills);
-    const s = scoreOferta(o, { skills: profSkills, intereses, titulo: prof.rows[0]?.titulo || "" });
-    compat = { score: s.score, shared: s.shared, missing: s.missing };
-  }
+  // compatibilidad y parecidas (motor v2: habilidades, texto, título, rubro, nivel, zona, historial)
+  const { index, offers } = await getIndex(pool);
+  const prof = await loadProfile(pool, session.userId, index);
+  const hasCv = !!prof && (prof.skillSet.size > 0 || !!prof.cv_text);
+  const compat = prof && hasCv ? scoreMatch(o, prof, index) : null;
+  const simIds = similarTo(num, index, 6);
+  const simRows = simIds.length
+    ? (await pool.query("SELECT id, titulo, empresa, ubicacion, categoria, modalidad FROM ofertas WHERE id = ANY($1::bigint[])", [simIds.map((x) => x.id)])).rows
+    : [];
+  const similar = simIds
+    .map((x) => ({ ...simRows.find((r) => Number(r.id) === x.id), score: prof ? scoreMatch(offers.get(x.id) ?? o, prof, index).score : null }))
+    .filter((r) => r.id);
 
   return (
     <main className="bg-scene-plain min-h-screen pb-24">
@@ -129,14 +128,17 @@ export default async function OfertaPage({
                       <span className="block h-full rounded-full bg-[#0038a8]" style={{ width: `${Math.min(100, compat.score)}%` }} />
                     </span>
                   </div>
-                  {!!compat.shared.length && (
-                    <p className="mt-2 text-xs font-bold text-[#0a2156]">
-                      Coincidís en {compat.shared.map(tagLabel).join(" · ")}
-                    </p>
+                  <p className="mt-1 text-xs font-bold text-[#0a2156]">{compat.score >= 70 ? "Match alto" : compat.score >= 45 ? "Buen match" : "Match bajo"}</p>
+                  {!!compat.reasons.length && (
+                    <ul className="mt-3 space-y-1.5 text-xs font-medium text-[#1c1917]">
+                      {compat.reasons.slice(0, 4).map((r) => (
+                        <li key={r} className="flex gap-1.5"><span className="text-green-600">✓</span>{r}</li>
+                      ))}
+                    </ul>
                   )}
                   {!!compat.missing.length && (
-                    <p className="mt-1.5 text-xs font-medium text-stone-500">
-                      Te faltaría: {compat.missing.map(tagLabel).join(" · ")}
+                    <p className="mt-2.5 text-xs font-medium text-stone-500">
+                      Te faltaría: {compat.missing.map(label).join(" · ")}
                     </p>
                   )}
                   {!compat.shared.length && !compat.missing.length && (
@@ -183,6 +185,28 @@ export default async function OfertaPage({
             </div>
           </aside>
         </div>
+        {similar.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-stone-400">Ofertas parecidas</h2>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {similar.map((r) => (
+                <Link key={String(r.id)} href={`/oferta/${r.id}`}
+                  className="card group block p-4 transition hover:-translate-y-0.5 hover:border-[#bfdbfe]">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="line-clamp-2 text-sm font-bold group-hover:text-[#0038a8]">{String(r.titulo ?? "(sin título)")}</p>
+                    {r.score !== null && r.score >= 45 && (
+                      <span className="shrink-0 rounded-md bg-[#fcd116] px-1.5 py-0.5 text-xs font-bold text-[#0a2156]">{r.score}%</span>
+                    )}
+                  </div>
+                  <p className="mt-1 truncate text-xs font-medium text-stone-500">
+                    {[r.empresa, ubicacionLabel(r.ubicacion as string | null)].filter(Boolean).join(" · ")}
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-[#0038a8]">{catLabel(r.categoria as string | null)}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
