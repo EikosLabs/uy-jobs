@@ -19,3 +19,13 @@ for (const [t, must, not] of cases) {
   fail += bad.length ? 1 : 0;
 }
 if (fail) process.exit(1);
+
+// Regresión: pg devuelve bigint como texto; el índice debe encontrar el aviso igual.
+import { CorpusIndex } from "@/lib/recommend";
+const idx = new CorpusIndex([
+  { id: "4991" as unknown as number, titulo: "Frontend React developer", descripcion: "React TypeScript", categoria: "tecnologia", seniority: null, modalidad: null },
+  { id: "5000" as unknown as number, titulo: "Frontend React engineer", descripcion: "React JavaScript", categoria: "tecnologia", seniority: null, modalidad: null },
+]);
+const ok = !!idx.vecById(4991) && idx.ids().every((x) => typeof x === "number");
+console.log(ok ? "✓" : "✗", "ids de texto (bigint de pg) se normalizan a número");
+if (!ok) process.exit(1);

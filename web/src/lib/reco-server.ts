@@ -28,10 +28,12 @@ function rebuild(pool: Pool): Promise<Cached> {
       `SELECT id, titulo, descripcion, requisitos, categoria, seniority, modalidad, departamento, experiencia_min, tags
        FROM ofertas`
     );
-    const index = new CorpusIndex(r.rows as OfferLike[]);
+    // pg devuelve bigint como texto: normalizamos a número una sola vez acá
+    const rows = (r.rows as OfferLike[]).map((o) => ({ ...o, id: Number(o.id) }));
+    const index = new CorpusIndex(rows);
     // en memoria guardamos lo necesario para puntuar, sin la descripción completa
     const offers = new Map<number, OfferLike>();
-    for (const o of r.rows as OfferLike[]) offers.set(o.id!, { ...o, descripcion: null, requisitos: null });
+    for (const o of rows) offers.set(o.id, { ...o, descripcion: null, requisitos: null });
     cache = { at: Date.now(), index, offers };
     return cache;
   })().finally(() => {

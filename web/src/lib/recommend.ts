@@ -68,9 +68,10 @@ export class CorpusIndex {
       for (const s of sk) this.skillDf.set(s, (this.skillDf.get(s) ?? 0) + 1);
     }
     for (const [id, tf, sk] of tfs) {
-      if (id === undefined) continue;
-      this.vecs.set(id, tfidf(tf, this.idf));
-      this.offerSkills.set(id, sk);
+      if (id === undefined || id === null) continue;
+      // pg devuelve bigint como texto: las llaves siempre son números
+      this.vecs.set(Number(id), tfidf(tf, this.idf));
+      this.offerSkills.set(Number(id), sk);
     }
   }
 
@@ -84,15 +85,15 @@ export class CorpusIndex {
   skillIdf = (s: string) => Math.log((this.n + 1) / ((this.skillDf.get(s) ?? 0) + 1)) + 1;
 
   vecOf(o: OfferLike): Vec {
-    return (o.id !== undefined && this.vecs.get(o.id)) || tfidf(offerTf(o), this.idf);
+    return (o.id != null && this.vecs.get(Number(o.id))) || tfidf(offerTf(o), this.idf);
   }
 
   skillsOf(o: OfferLike): string[] {
-    return (o.id !== undefined && this.offerSkills.get(o.id)) || offerSkillsOf(o);
+    return (o.id != null && this.offerSkills.get(Number(o.id))) || offerSkillsOf(o);
   }
 
   vecById(id: number): Vec | undefined {
-    return this.vecs.get(id);
+    return this.vecs.get(Number(id));
   }
 
   ids(): number[] {
