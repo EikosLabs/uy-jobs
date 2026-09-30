@@ -86,7 +86,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
           )}
           {session && (
             <div className="relative z-40 md:hidden">
-              <MobileMenu links={links} />
+              <MobileMenu links={links} nombre={firstName(session.nombre)} />
             </div>
           )}
         </div>
