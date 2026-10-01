@@ -331,7 +331,7 @@ def bj_detail(oferta):
 # Rate limit aprox: ~10 paginas por IP. Para volumen, proxies (ver README).
 
 LI_LIST = ("https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings"
-           "/search?location=Uruguay&start={s}")
+           "/search?location=Uruguay&sortBy=DD&f_TPR=r604800&start={s}")
 LI_VIEW = "https://www.linkedin.com/jobs/view/{jid}"
 LI_DETAIL = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{jid}"
 
@@ -368,6 +368,19 @@ IN_LIST = "https://uy.indeed.com/jobs?q={q}&l=Uruguay&sort=date&start={s}"
 IN_VIEW = "https://uy.indeed.com/viewjob?jk={jk}"
 
 
+def _in_snippets(html):
+    """{jobkey: resumen} desde el JSON embebido (mosaic-provider-jobcards)."""
+    m = re.search(r'providerData\["mosaic-provider-jobcards"\]\s*=\s*', html)
+    if not m:
+        return {}
+    try:
+        d, _ = json.JSONDecoder().raw_decode(html[m.end():])
+        res = d["metaData"]["mosaicProviderJobCardsModel"]["results"]
+    except (ValueError, KeyError, TypeError):
+        return {}
+    return {r.get("jobkey", ""): clean(r.get("snippet") or "")[:3000] for r in res}
+
+
 def in_list(html):
     out = []
     for m in re.finditer(r"<td[^>]*class=\"[^\"]*resultContent[^\"]*\"[^>]*>(.*?)</td>", html, re.S | re.I):
@@ -398,6 +411,10 @@ def in_list(html):
             "fecha_publicacion": clean(fec.group(1)) if fec else "",
             "url": url, "descripcion": clean(snip.group(1)) if snip else "", "requisitos": "",
         })
+    snips = _in_snippets(html)
+    for o in out:
+        if not o["descripcion"]:
+            o["descripcion"] = snips.get(o["oferta_id"], "")
     # fallback: enlaces /ver-oferta o viewjob sueltos
     if not out:
         for m in re.finditer(r"href=\"([^\"]*(?:viewjob\?jk=[a-f0-9]{10,}|/oferta[^\"]*))\"", html):
@@ -629,6 +646,9 @@ def scrape(fuente, paginas, detalle, sin_detalle, delay, use_flare=True, known=N
             rows = bj_list(h) if h else []
             n_new = _page_new_count(rows, {o["url"] for o in todo}, known)
             print(f"  pag {p}: {len(rows)} avisos ({n_new} nuevos)")
+            if not rows:
+                print("  (corte: sin resultados o bloqueo)")
+                break
             todo.extend(rows)
             stale = stale + 1 if n_new == 0 and rows else 0
             if stale >= 2:
@@ -687,16 +707,18 @@ def scrape(fuente, paginas, detalle, sin_detalle, delay, use_flare=True, known=N
                 print("  (corte temprano: sin novedades)")
                 break
             time.sleep(delay)
-    # dedup en memoria por url
+    # dedup en memoria por url; fuera los avisos en cirílico (spam de LinkedIn geolocalizado en UY)
     seen, uniq = set(), []
     for o in todo:
+        if re.search(r"[\u0400-\u04FF]", o["titulo"]):
+            continue
         if o["url"] not in seen:
             seen.add(o["url"])
             uniq.append(o)
     print(f"total listados: {len(todo)} -> unicos: {len(uniq)}")
     if not sin_detalle:
         # solo pendientes: nuevas o conocidas sin descripcion (las completas se saltean)
-        pendientes = [o for o in uniq if not (known and known.get(o["url"], False))]
+        pendientes = [o for o in uniq if not o["descripcion"] and not (known and known.get(o["url"], False))]
         ya = len(uniq) - len(pendientes)
         n = len(pendientes) if detalle <= 0 else min(detalle, len(pendientes))
         print(f"[detalle] {n} pendientes ({ya} ya guardados, se saltean)...")

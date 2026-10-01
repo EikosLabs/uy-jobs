@@ -50,7 +50,9 @@ def upsert_rows(dsn, rows):
     con = get_conn(dsn)
     cur = con.cursor()
     n_new = 0
+    per = {}  # fuente -> [listados, nuevos]
     for o in rows:
+        per.setdefault(o["fuente"], [0, 0])[0] += 1
         cur.execute("SELECT descripcion FROM ofertas WHERE url = %s", (o["url"],))
         existed = cur.fetchone()
         cur.execute(
@@ -62,11 +64,12 @@ def upsert_rows(dsn, rows):
         )
         if not existed:
             n_new += 1
+            per[o["fuente"]][1] += 1
     con.commit()
     cur.execute("SELECT COUNT(*) FROM ofertas")
     total = cur.fetchone()[0]
     con.close()
-    return n_new, total
+    return n_new, total, per
 
 
 def enrich_all(dsn, full=False):
@@ -85,7 +88,7 @@ def enrich_all(dsn, full=False):
     print(f"enrich: {len(rows)} filas ({'full' if full else 'incremental'})")
     n = 0
     for oid, tit, desc, req, cont, sal, ubi, jor in rows:
-        text = " ".join(x or "" for x in (tit, desc, req, cont)).lower()
+        text = " ".join(x or "" for x in (tit, desc, req, cont, jor)).lower()
         # v2 (nlp.py): el título manda, palabras completas, ES + EN
         cat, _conf = classify_offer(tit, desc, req)
         modal = modalidad_of(tit, " ".join(x or "" for x in (desc, cont)))
@@ -99,11 +102,15 @@ def enrich_all(dsn, full=False):
             tags.append("ingles")
         if any(k in text for k in ("portugues", "portugués", "portuguese")):
             tags.append("portugues")
-        if any(k in text for k in ("primer empleo", "sin experiencia")):
+        if any(k in text for k in ("primer empleo", "primera experiencia", "sin experiencia", "no se requiere experiencia",
+                                   "no requiere experiencia", "no excluyente la experiencia", "experiencia no excluyente")):
             tags.append("primer-empleo")
-        if any(k in text for k in ("part time", "part-time", "medio tiempo")):
+        if any(k in text for k in ("part time", "part-time", "medio tiempo", "media jornada", "medio horario", "4 horas diarias",
+                                   "20 horas semanales", "jornada parcial")):
             tags.append("part-time")
-        if any(k in text for k in ("estudiante", "estudiantes", "cursando", "facultad", "universidad", "utec", "udelar")):
+        # estricto: que el aviso hable de estudiantes, no que pida un título universitario
+        if any(k in text for k in ("estudiante", "cursando", "pasantia", "pasantía", "pasante", "becario", "trainee")) \
+                or sen in ("estudiante", "pasantia"):
             tags.append("estudiantes")
         if any(k in text for k in ("joven", "jovenes", "jóvenes", "joven profesional")):
             tags.append("joven")
@@ -148,22 +155,22 @@ def load_known(dsn):
     return known
 
 
-def record_state(dsn, fuente, nuevas, total):
+FUENTES = ("computrabajo", "buscojobs", "linkedin", "indeed", "gallito")
+
+
+def record_state(dsn, fuente, per):
     con = get_conn(dsn)
     cur = con.cursor()
-    if fuente == "todas":
-        for f in ("computrabajo", "buscojobs", "linkedin", "indeed", "gallito"):
-            cur.execute(
-                """INSERT INTO scrape_state (fuente, last_run, nuevos, total)
-                   VALUES (%s, now(), %s, %s)
-                   ON CONFLICT (fuente) DO UPDATE SET last_run = now(), total = EXCLUDED.total""",
-                (f, 0, total))
-    else:
+    for f in FUENTES if fuente == "todas" else (fuente,):
+        listados, nuevos = per.get(f, (0, 0))
+        if not listados:
+            print(f"[ALERTA] {f}: 0 avisos (bloqueo o cambio en el sitio)")
+        cur.execute("SELECT COUNT(*) FROM ofertas WHERE fuente = %s", (f,))
         cur.execute(
             """INSERT INTO scrape_state (fuente, last_run, nuevos, total)
                VALUES (%s, now(), %s, %s)
                ON CONFLICT (fuente) DO UPDATE SET last_run = now(), nuevos = EXCLUDED.nuevos, total = EXCLUDED.total""",
-            (fuente, nuevas, total))
+            (f, nuevos, cur.fetchone()[0]))
     con.commit()
     con.close()
 
@@ -192,9 +199,11 @@ def main():
         known = load_known(a.dsn)
         print(f"memoria: {len(known)} urls conocidas ({sum(known.values())} con detalle)")
         rows = scrape(a.fuente, a.paginas, a.detalle, a.sin_detalle, a.delay, known=known)
-        nuevas, total = upsert_rows(a.dsn, rows)
+        nuevas, total, per = upsert_rows(a.dsn, rows)
         print(f"scrape: {len(rows)} avisos, nuevas: {nuevas}, total PG: {total}")
-        record_state(a.dsn, a.fuente, nuevas, total)
+        for f, (n, nv) in sorted(per.items()):
+            print(f"  {f}: {n} listados, {nv} nuevos")
+        record_state(a.dsn, a.fuente, per)
     n, cats = enrich_all(a.dsn, full=a.full_enrich or a.enrich_only)
     print(f"enriquecidos: {n}")
     print("categorias:", cats)

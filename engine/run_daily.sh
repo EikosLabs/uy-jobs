@@ -14,7 +14,7 @@ fi
 # Dentro de docker el host es glyphium-postgres; en el host es 127.0.0.1.
 export DATABASE_URL="${DATABASE_URL/@glyphium-postgres:/@127.0.0.1:}"
 echo "[$(date -Is)] inicio scrape diario"
-python3 "$ENGINE_DIR/scrape_pg.py" --fuente todas --paginas 8 --detalle 150 --delay 1.2 --proxy-file "$ENGINE_DIR/proxies.txt"
+python3 "$ENGINE_DIR/scrape_pg.py" --fuente todas --paginas 40 --detalle 500 --delay 1.2 --proxy-file "$ENGINE_DIR/proxies.txt"
 echo "[$(date -Is)] scrape rc=$?"
 # recalcula matches y genera notificaciones en la web
 if [ -n "${CRON_SECRET:-}" ]; then

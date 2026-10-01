@@ -53,7 +53,7 @@ CATS_V2 = {
         "golang", "elixir", "php", "ruby", "flutter", "ios", "android", "mobile", "genexus", "sap", "salesforce",
         "product manager", "product owner", "scrum master", "ux", "ui", "ux/ui", "architect", "arquitecto de software",
         "tech lead", "technical", "tecnico informatico", "analista programador", "analista funcional", "business analyst",
-        "integration", "api", "erp", "servidores", "servers", "big data", "computos", "centro de computos", "telecomunicaciones", "telecom*", "technical project manager", "it project manager", "crm developer", "netsuite", "database", "base de datos", "dba", "bi", "power bi",
+        "integration", "api", "erp", "devsecops", "amazon connect", "implementation specialist", "servidores", "servers", "big data", "computos", "centro de computos", "telecomunicaciones", "telecom*", "technical project manager", "it project manager", "crm developer", "netsuite", "database", "base de datos", "dba", "bi", "power bi",
     ],
     "ventas": [
         "vendedor*", "ventas", "venta", "comercial", "sales", "account executive", "account manager",
@@ -61,13 +61,13 @@ CATS_V2 = {
         "televentas", "telemarketing", "cajero*", "reponedor*", "promotor*", "merchandiser", "relevador*",
         "vendas", "agente de vendas", "retail", "store manager", "tienda", "local comercial", "asesor comercial",
         "ejecutivo comercial", "ejecutivo de cuentas", "ejecutivo de ventas", "alliances", "partnerships",
-        "revenue", "closer", "inside sales", "field sales", "territory manager", "client partner", "client advisor", "expansion manager", "business developer", "desarrollo de negocios", "desarrollo comercial",
+        "revenue", "closer", "inside sales", "field sales", "territory manager", "client partner", "client advisor", "expansion manager", "business developer", "desarrollo de negocios", "desarrollo comercial", "repositor*", "auxiliar de caja", "encargado de tienda", "encargado de local",
     ],
     "administracion": [
         "administrativ*", "administrative", "asistente", "assistant", "virtual assistant", "secretari*",
         "recepcionista", "receptionist", "back office", "backoffice", "data entry", "operaciones",
         "operations", "office", "oficina", "coordinador administrativo", "auxiliar administrativo",
-        "compras", "procurement", "planning analyst", "planificacion", "planificador*", "project coordinator", "coordinacion de proyectos", "purchasing", "sourcing", "abastecimiento", "gestion documental",
+        "compras", "procurement", "planning analyst", "planificacion", "planificador*", "project coordinator", "coordinacion de proyectos", "purchasing", "sourcing", "abastecimiento", "gestion documental", "administrador de edificios", "auxiliar de liquidaciones",
     ],
     "finanzas": [
         "contador*", "contable", "contabilidad", "accounting", "accountant", "finanzas", "finance", "financial",
@@ -87,25 +87,25 @@ CATS_V2 = {
         "chofer*", "conductor*", "driver", "repartidor*", "reparto", "delivery", "cadete", "cadeteria",
         "camion*", "libreta", "autoelevador*", "montacargas", "forklift", "inventario*", "stock", "supply chain",
         "cadena de suministro", "distribucion", "transporte", "shipping", "despacho", "expedicion",
-        "shift supervisor", "flota", "comex", "comercio exterior", "importaciones", "exportaciones", "aduana*", "supply", "supply development",
+        "shift supervisor", "flota", "comex", "comercio exterior", "importaciones", "exportaciones", "aduana*", "supply", "supply development", "armador de pedidos", "armado de pedidos", "pedidos",
     ],
     "atencion_cliente": [
         "atencion al cliente", "atencion a clientes", "customer service", "customer support", "customer success",
         "customer experience", "customer retention", "retencion de clientes", "call center", "contact center", "mesa de ayuda", "soporte al cliente",
-        "servicio al cliente", "agente telefonico", "operador telefonico", "teleoperador*", "cx",
+        "servicio al cliente", "agente telefonico", "operador telefonico", "teleoperador*", "cx", "client support", "atencion al publico", "retencion", "representante de servicio",
     ],
     "marketing": [
         "marketing", "mercadeo", "community manager", "redes sociales", "social media", "content", "contenido*",
         "copywriter", "seo", "sem", "growth", "publicidad", "advertising", "brand", "marca", "trade marketing",
         "diseñador grafico", "disenador grafico", "graphic designer", "designer", "diseno grafico", "animator",
         "animador", "2d", "3d", "motion", "audiovisual", "fotograf*", "comunicacion", "prensa", "crm manager",
-        "market analyst", "market research", "investigacion de mercado", "production", "campaign manager", "campaign*", "paid media",
+        "market analyst", "market research", "investigacion de mercado", "production", "campaign manager", "campaign*", "paid media", "encuestador*", "proposal writer",
     ],
     "operarios": [
         "operario*", "operator", "operador de maquina*", "produccion", "production operator", "planta",
         "fabrica", "manufactura", "manufacturing", "armado", "ensamblado", "empaque", "packaging",
         "linea de produccion", "supervisor de produccion", "peon*", "ayudante general", "calidad",
-        "quality inspector", "control de calidad",
+        "quality inspector", "control de calidad", "etiquetado", "foguista", "curtiembre", "jefe de maquina",
     ],
     "oficios": [
         "electricista", "electricidad", "electronica", "electromecanic*", "plomer*", "sanitari*", "carpinter*",
@@ -128,7 +128,7 @@ CATS_V2 = {
         "cocin*", "cook", "chef", "sous chef", "ayudante de cocina", "mozo", "moza", "camarer*", "waiter",
         "barista", "bartender", "barman", "panader*", "pasteler*", "reposter*", "bakery", "gastronom*",
         "restaurant*", "parrillero", "pizzero", "sushiman", "carniceria", "carnicer*", "fiambreria", "rotiseria",
-        "catering", "bacher*", "lavaplatos",
+        "catering", "bacher*", "lavaplatos", "mozos", "mozas", "ayudante de barra",
     ],
     "educacion": [
         "docente", "profesor*", "teacher", "maestr*", "educador*", "educacion", "education", "ensenanza",
@@ -140,7 +140,7 @@ CATS_V2 = {
         "ingeniero civil", "ingeniero electrico", "ingeniero mecanico", "ingeniero industrial",
         "ingeniero quimico", "hidrolog*", "hidraulic*", "geotecni*", "estructural", "obra", "construccion",
         "construction", "arquitect*", "revit", "autocad", "modelador*", "bim", "project engineer", "field engineer", "prevencionista", "seguridad industrial",
-        "safety", "hse", "medio ambiente", "environmental", "agronom*", "topograf*",
+        "safety", "hse", "medio ambiente", "environmental", "agronom*", "topograf*", "ambiental", "tecnico ambiental",
     ],
     "servicios": [
         "limpieza", "cleaning", "cleaner", "portero", "porteria", "conserjeria", "vigilante", "vigilancia",
