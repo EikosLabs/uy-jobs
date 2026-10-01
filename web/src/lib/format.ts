@@ -71,8 +71,14 @@ export function seniorityLabel(s: string | null | undefined): string {
 }
 
 /** Etiqueta de tag/habilidad: "atencion_cliente" → "Atención al cliente". */
+// etiquetas que agrega el engine (enrich)
+const TAG_LABEL: Record<string, string> = {
+  ingles: "Inglés", portugues: "Portugués", "part-time": "Part time", estudiantes: "Para estudiantes",
+  "primer-empleo": "Sin experiencia", flexible: "Horario flexible", estudios: "Pide estudios", joven: "Jóvenes",
+};
+
 export function tagLabel(t: string): string {
-  return CATEGORIA_LABEL[t] ?? MODALIDAD_LABEL[t] ?? SENIORITY_LABEL[t] ?? t.replace(/_/g, " ");
+  return CATEGORIA_LABEL[t] ?? MODALIDAD_LABEL[t] ?? SENIORITY_LABEL[t] ?? TAG_LABEL[t] ?? t.replace(/_/g, " ");
 }
 
 /** "Montevideo, Departamento de Montevideo" → "Montevideo";
@@ -115,4 +121,39 @@ export function salaryLine(o: Pick<Oferta, "salario_num" | "moneda" | "salario">
   const n = Number(raw.replace(/[^\d]/g, ""));
   if (n && !plausibleSalary(n, o.moneda)) return "";
   return raw;
+}
+
+const SECTION_RX =
+  /\s(?=(?:Requisitos|Responsabilidades|Beneficios|Ofrecemos|Qué ofrecemos|Qué buscamos|Buscamos|Perfil buscado|Perfil requerido|Funciones|Tareas|Principales tareas|Sobre (?:nosotros|el puesto|la empresa)|Requirements|Responsibilities|Qualifications|Benefits|What you(?:'ll| will)|About (?:us|the role|the company)|Minimum Qualifications|Preferred Qualifications|Job Overview|Company Overview|Essential Duties|Nice to have|We offer)\b\s*:?)/g;
+
+/**
+ * Descripción de un aviso en párrafos legibles. Muchas fuentes la mandan en un solo
+ * bloque: cortamos antes de títulos de sección conocidos y de viñetas.
+ */
+export function paragraphs(text: string | null | undefined): string[] {
+  const t = (text ?? "").trim();
+  if (!t) return [];
+  const withBreaks = /\n/.test(t)
+    ? t
+    : t.replace(SECTION_RX, "\n\n").replace(/\s+(?=[•▪●◦·]\s)/g, "\n").replace(/([.!?])\s+(?=-\s+[A-ZÁÉÍÓÚÑ])/g, "$1\n");
+  return withBreaks
+    .split(/\n{2,}|\n(?=[•▪●◦·-]\s)|\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .flatMap((p) => (p.length > 450 ? bySentences(p) : [p]));
+}
+
+/** Párrafo muy largo → bloques de ~300 caracteres cortando en fin de oración. */
+function bySentences(p: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  for (const s of p.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿¡])/)) {
+    cur = cur ? `${cur} ${s}` : s;
+    if (cur.length >= 300) {
+      out.push(cur);
+      cur = "";
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
 }

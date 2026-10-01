@@ -5,11 +5,13 @@ import { DUP_KEY, getPool } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { Chip, CompanyAvatar } from "@/components/ui";
 import { ApplyWidget } from "@/components/ApplyWidget";
+import { ApplyBar } from "@/components/ApplyBar";
+import { Collapsible } from "@/components/Collapsible";
 import { CoverLetterWidget } from "@/components/CoverLetterWidget";
 import { getIndex, loadProfile } from "@/lib/reco-server";
 import { label, scoreMatch, similarTo } from "@/lib/recommend";
 import type { Oferta } from "@/lib/supabase";
-import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
+import { catLabel, fuenteLabel, modalidadLabel, paragraphs, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
 
 export default async function OfertaPage({
   params,
@@ -60,7 +62,7 @@ export default async function OfertaPage({
     .filter((r) => r.id);
 
   return (
-    <main className="bg-scene-plain min-h-screen pb-24">
+    <main className="no-enter bg-scene-plain min-h-screen pb-44 lg:pb-24">
       <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
         <Link href="/ofertas" className="text-sm font-bold text-stone-500 hover:text-[#0038a8]">
           ← todas las ofertas
@@ -72,6 +74,9 @@ export default async function OfertaPage({
               <CompanyAvatar name={o.empresa} size="lg" />
               <div className="min-w-0">
                 <div className="flex flex-wrap gap-1.5">
+                  {compat && compat.score >= 45 && (
+                    <span className="inline-flex items-center rounded-md bg-[#fcd116] px-2 py-0.5 text-xs font-bold text-[#0a2156]">{compat.score}% match</span>
+                  )}
                   <Chip tone="mint">{catLabel(o.categoria)}</Chip>
                   {o.modalidad && <Chip tone="sky">{modalidadLabel(o.modalidad)}</Chip>}
                   {o.seniority && <Chip tone="grape">{seniorityLabel(o.seniority)}</Chip>}
@@ -103,7 +108,19 @@ export default async function OfertaPage({
             {o.descripcion && (
               <>
                 <h2 className="mt-8 text-xs font-bold uppercase tracking-widest text-stone-400">Descripción</h2>
-                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-stone-700">{o.descripcion}</p>
+                <div className="mt-3">
+                  <Collapsible long={o.descripcion.length > 900}>
+                    <div className="space-y-3 text-[15px] leading-7 text-stone-700">
+                      {paragraphs(o.descripcion).map((t, i) => (
+                        <p key={i} className={/^[•▪●◦·-]\s/.test(t) ? "pl-4 -indent-4" : /^[A-ZÁÉÍÓÚ][^.]{2,40}:/.test(t) ? "pt-1" : ""}>
+                          {/^([A-ZÁÉÍÓÚ][^.:]{2,40}):\s*(.*)$/.test(t) ? (
+                            <><strong className="font-bold text-[#1c1917]">{t.split(":")[0]}:</strong>{t.slice(t.indexOf(":") + 1)}</>
+                          ) : t}
+                        </p>
+                      ))}
+                    </div>
+                  </Collapsible>
+                </div>
               </>
             )}
             <dl className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#e7e5e4] bg-[#e7e5e4] text-sm sm:grid-cols-4">
@@ -197,10 +214,10 @@ export default async function OfertaPage({
                   </div>
                 ))}
               </dl>
-              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-accent mt-6 w-full py-3">
+              <a href={o.url} target="_blank" rel="noopener noreferrer" className="btn-accent mt-6 w-full py-3 max-lg:hidden">
                 Postularme en {fuenteLabel(o.fuente)} ↗
               </a>
-              <p className="mt-2 text-center text-xs font-semibold text-stone-400">Se abre el aviso original en otra pestaña</p>
+              <p className="mt-2 text-center text-xs font-semibold text-stone-400 max-lg:hidden">Se abre el aviso original en otra pestaña</p>
               <div className="mt-4 border-t border-stone-100 pt-4">
                 <ApplyWidget ofertaId={num} initialStatus={appStatus} />
               </div>
@@ -233,6 +250,7 @@ export default async function OfertaPage({
           </section>
         )}
       </div>
+      <ApplyBar ofertaId={num} initialStatus={appStatus} url={o.url} fuente={fuenteLabel(o.fuente)} />
     </main>
   );
 }

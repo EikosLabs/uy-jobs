@@ -5,6 +5,18 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LogoutButton } from "@/components/LogoutButton";
 import { InstallButton } from "@/components/Pwa";
+import { IconArrow, IconBell, IconBrief, IconCheck, IconPin, IconSparkle, IconUser } from "@/components/ui";
+
+// ícono y una línea de qué hay en cada sección
+const META: Record<string, [React.ReactNode, string]> = {
+  "/ofertas": [<IconBrief key="o" />, "Buscá y deslizá avisos"],
+  "/mapa": [<IconPin key="m" />, "Trabajos por departamento"],
+  "/postulaciones": [<IconCheck key="p" />, "Tu tablero de búsqueda"],
+  "/notificaciones": [<IconBell key="n" />, "Ofertas que encajan con vos"],
+  "/referidos": [<IconArrow key="r" />, "Compartí Trabajogpt"],
+  "/perfil": [<IconUser key="u" />, "Tu CV y preferencias"],
+  "/bienvenida": [<IconSparkle key="b" />, "Guía paso a paso"],
+};
 
 export type NavLink = { href: string; label: string; badge?: number; current?: boolean };
 
@@ -71,11 +83,17 @@ export function MobileMenu({ links, nombre }: { links: NavLink[]; nombre?: strin
               onClick={() => setOpen(false)}
               aria-current={l.current ? "page" : undefined}
               style={{ transitionDelay: open ? `${100 + i * 50}ms` : "0ms" }}
-              className={`flex items-center rounded-xl px-4 py-3 text-xl font-bold transition-all duration-500 ${
-                open ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
-              } ${l.current ? "bg-[#0038a8]/10 text-[#0038a8]" : "text-[#1c1917] hover:bg-stone-100"}`}
+              className={`flex items-center gap-3.5 rounded-2xl px-3 py-2.5 transition-all duration-500 active:scale-[0.98] ${
+                open ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+              } ${l.current ? "bg-[#0038a8]/8 text-[#0038a8]" : "text-[#1c1917] hover:bg-stone-100"}`}
             >
-              {l.label}
+              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl [&_svg]:h-5 [&_svg]:w-5 ${l.current ? "bg-[#0038a8] text-white" : "bg-[#f3f1ed] text-[#0a2156]"}`}>
+                {META[l.href]?.[0] ?? <IconSparkle />}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-[var(--font-display)] text-lg font-bold leading-tight tracking-tight">{l.label}</span>
+                {META[l.href] && <span className="block truncate text-xs font-medium text-stone-500">{META[l.href][1]}</span>}
+              </span>
               {!!l.badge && (
                 <span className="ml-auto rounded-full bg-[#fcd116] px-2 py-0.5 text-xs font-bold text-[#0a2156]">
                   {l.badge} {l.badge === 1 ? "nuevo" : "nuevos"}

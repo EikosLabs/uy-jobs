@@ -43,10 +43,13 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
   );
   const tab = (href: string, label: string, key: string, icon: React.ReactNode, badge?: number) => (
     <Link key={href} href={href} aria-current={active === key ? "page" : undefined}
-      className={`relative flex flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 text-[11px] font-semibold [&_svg]:h-6 [&_svg]:w-6 ${
+      className={`relative flex flex-1 flex-col items-center gap-0.5 pb-1.5 pt-1.5 text-[11px] font-semibold transition active:scale-90 [&_svg]:h-[22px] [&_svg]:w-[22px] ${
         active === key ? "text-[#0038a8]" : "text-stone-500"
       }`}>
-      {icon}
+      {/* indicador de sección activa (pastilla detrás del ícono, como en apps nativas) */}
+      <span className={`grid h-7 w-14 place-items-center rounded-full transition-all duration-300 ${active === key ? "bg-[#0038a8]/12 [&_svg]:stroke-[22]" : "bg-transparent"}`}>
+        {icon}
+      </span>
       {label}
       {!!badge && (
         <span className="absolute left-1/2 top-1 ml-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#fcd116] px-1 text-[10px] font-bold text-[#0a2156]">
@@ -104,7 +107,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
     </header>
     {session && (
       <nav aria-label="Secciones principales"
-        className="tabbar glass-bar fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] md:hidden">
+        className="tabbar glass-bar fixed inset-x-0 bottom-0 z-30 flex border-t pb-[env(safe-area-inset-bottom)] md:hidden">
         {tab("/ofertas", "Ofertas", "ofertas", <IconBrief />)}
         {tab("/mapa", "Mapa", "mapa", <IconPin />)}
         {tab("/postulaciones", "Postulaciones", "postulaciones", <IconCheck />)}

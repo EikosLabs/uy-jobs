@@ -32,10 +32,13 @@ type Top = {
   detail: string;
 };
 
+const TOP_FIRST = 6; // los mejores primero; el resto a un toque
+
 export default function NotificacionesClient() {
   const [items, setItems] = useState<Notif[]>([]);
   const [top, setTop] = useState<Top[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     fetch("/api/notificaciones")
@@ -93,11 +96,16 @@ export default function NotificacionesClient() {
                 <span className="rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] tracking-wider text-green-700">En vivo</span>
               </h2>
               <div className="mt-3 space-y-2.5">
-                {top.map((n) => (
+                {(showAll ? top : top.slice(0, TOP_FIRST)).map((n) => (
                   <MatchRow key={`top-${n.id}`} href={`/oferta/${n.id}`} score={n.score} titulo={n.titulo} empresa={n.empresa}
                     ubicacion={n.ubicacion} categoria={n.categoria} modalidad={n.modalidad} detail={n.detail} />
                 ))}
               </div>
+              {!showAll && top.length > TOP_FIRST && (
+                <button onClick={() => setShowAll(true)} className="btn-ghost mt-3 w-full py-2.5 text-sm">
+                  Ver {top.length - TOP_FIRST} matches más
+                </button>
+              )}
             </section>
           )}
           <section className="mt-8">
