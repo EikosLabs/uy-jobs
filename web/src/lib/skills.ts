@@ -97,7 +97,8 @@ export const SKILLS: Record<string, string[]> = {
   psicologia: ["psicologia", "psicologo", "psicologa", "terapia ocupacional", "fisioterapia", "fisioterapeuta", "fonoaudiologia"],
   laboratorio: ["laboratorio", "analisis clinicos", "tecnico de laboratorio"],
   veterinaria: ["veterinaria", "veterinario", "veterinaria"],
-  educacion: ["docente", "profesor", "profesora", "maestro", "maestra", "educacion", "ensenanza", "tutor", "capacitador"],
+  // sin "educacion": casi todo CV tiene una sección "Educación" y no es docencia
+  educacion: ["docente", "profesor", "profesora", "maestro", "maestra", "ensenanza", "tutor", "capacitador"],
   // idiomas
   ingles: ["ingles", "english", "bilingue", "bilingual", "ingles avanzado", "fluent english"],
   portugues: ["portugues", "portuguese", "portugues avanzado"],

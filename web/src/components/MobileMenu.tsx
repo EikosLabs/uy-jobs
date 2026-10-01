@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LogoutButton } from "@/components/LogoutButton";
+import { InstallButton } from "@/components/Pwa";
 
 export type NavLink = { href: string; label: string; badge?: number; current?: boolean };
 
@@ -83,7 +84,10 @@ export function MobileMenu({ links, nombre }: { links: NavLink[]; nombre?: strin
             </Link>
           ))}
         </nav>
-        <div className="mt-auto border-t border-[#e7e5e4] px-6 py-5 [&_button]:w-full" onClick={() => setOpen(false)}>
+        <div className="mt-auto px-6 pb-3">
+          <InstallButton />
+        </div>
+        <div className="border-t border-[#e7e5e4] px-6 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] [&_button]:w-full" onClick={() => setOpen(false)}>
           <LogoutButton />
         </div>
       </div>

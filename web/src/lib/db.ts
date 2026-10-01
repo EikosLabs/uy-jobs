@@ -14,3 +14,10 @@ export function getPool(): Pool | null {
   }
   return pool;
 }
+
+/**
+ * Mismo aviso publicado varias veces (otra ciudad, otra fuente): mismo título + misma empresa.
+ * Sin empresa no agrupamos, para no juntar avisos distintos con título genérico.
+ */
+export const DUP_KEY = `CASE WHEN COALESCE(TRIM(empresa), '') = '' THEN id::text
+  ELSE LOWER(TRIM(titulo)) || '|' || LOWER(TRIM(empresa)) END`;

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Sin conexión · Trabajogpt</title>
+<style>
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: #faf9f7; color: #1c1917;
+         font: 500 16px/1.5 ui-sans-serif, system-ui, sans-serif; text-align: center; padding: 24px; box-sizing: border-box; }
+  img { width: 72px; height: 72px; border-radius: 18px; border: 1px solid #e7e5e4; }
+  h1 { font-size: 22px; margin: 20px 0 6px; }
+  p { color: #57534e; margin: 0 0 24px; }
+  button { font: inherit; font-weight: 700; color: #fff; background: #0038a8; border: 0; border-radius: 12px; padding: 12px 22px; }
+</style>
+</head>
+<body>
+  <main>
+    <img src="/icon-192.png" alt="">
+    <h1>Sin conexión</h1>
+    <p>Revisá tu internet y volvé a intentar.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </main>
+  <script>addEventListener("online", () => location.reload());</script>
+</body>
+</html>

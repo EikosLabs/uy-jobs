@@ -39,3 +39,15 @@ export const DEPARTAMENTOS = [
   "Paysandú", "Río Negro", "Rivera", "Rocha", "Salto",
   "San José", "Soriano", "Tacuarembó", "Treinta y Tres",
 ];
+
+/** Momento laboral que declara la persona (personaliza el orden de las ofertas). */
+export const ETAPAS: [string, string][] = [
+  ["estudiante", "Estoy estudiando"],
+  ["primer_empleo", "Busco mi primer empleo"],
+  ["con_experiencia", "Ya tengo experiencia"],
+];
+export const JORNADAS: [string, string][] = [
+  ["part", "Part time"],
+  ["full", "Full time"],
+  ["", "Me da igual"],
+];

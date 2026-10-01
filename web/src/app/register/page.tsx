@@ -29,7 +29,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (state?.ok) {
       const next = safeNext(new URLSearchParams(window.location.search).get("next"));
-      router.push(next || "/ofertas");
+      router.push(next || "/bienvenida");
       router.refresh();
     }
   }, [state, router]);

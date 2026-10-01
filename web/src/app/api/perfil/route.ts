@@ -5,10 +5,13 @@ import { extractSkills } from "@/lib/skills";
 import { MATCH_DISPLAY } from "@/lib/match";
 import { getIndex, loadProfile } from "@/lib/reco-server";
 import { scoreMatch } from "@/lib/recommend";
-import { ocrImage, pdfToText } from "@/lib/cv";
+import { ocrImage, ocrPdf, pdfToText } from "@/lib/cv";
 import { s3, s3Put } from "@/lib/s3";
+import { DEPARTAMENTOS } from "@/lib/supabase";
 
 const MAX_BYTES = 6 * 1024 * 1024;
+const ETAPAS = ["estudiante", "primer_empleo", "con_experiencia"] as const;
+const JORNADAS = ["part", "full"] as const;
 const GAP_IGNORE = new Set(["senior", "junior", "lead", "estudiante", "sin_experiencia"]);
 
 export async function GET() {
@@ -23,7 +26,7 @@ export async function GET() {
   let matches = 0;
   let gaps: { skill: string; n: number }[] = [];
   let suggested: { categoria: string; n: number }[] = [];
-  const user0 = await pool.query("SELECT intereses FROM users WHERE id = $1", [session.userId]);
+  const user0 = await pool.query("SELECT intereses, etapa, jornada FROM users WHERE id = $1", [session.userId]);
   const intereses: string[] = String(user0.rows[0]?.intereses || "").split(",").filter(Boolean);
   if (p && (p.skills || p.cv_text)) {
     const { index, offers } = await getIndex(pool);
@@ -51,7 +54,10 @@ export async function GET() {
       gaps = [...demand.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([skill, n]) => ({ skill, n }));
     }
   }
-  return NextResponse.json({ profile: p, matches, gaps, suggested, intereses });
+  return NextResponse.json({
+    profile: p, matches, gaps, suggested, intereses,
+    etapa: user0.rows[0]?.etapa ?? "", jornada: user0.rows[0]?.jornada ?? "",
+  });
 }
 
 export async function POST(req: Request) {
@@ -81,12 +87,22 @@ export async function POST(req: Request) {
     if (file.size > MAX_BYTES) return NextResponse.json({ error: "Archivo muy grande (máx 6 MB)." }, { status: 400 });
     const buf = Buffer.from(await file.arrayBuffer());
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    // el original va a S3/MinIO en paralelo con la lectura (no suma tiempo de espera)
+    const store = s3();
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+    const key = `cvs/${session.userId}/${Date.now()}-${safe || "cv"}`;
+    const upload = store
+      ? s3Put(key, buf, file.type || "application/octet-stream").then(
+          () => key,
+          (e) => (console.error("S3 upload:", e instanceof Error ? e.message : e), "")
+        )
+      : Promise.resolve("");
     try {
-      cvText = isPdf ? await pdfToText(buf) : "";
+      cvText = isPdf ? await pdfToText(buf).catch(() => "") : "";
       // OCR si es imagen o el PDF no trae texto (escaneado)
       if (cvText.trim().length < 200) {
-        const ext = isPdf ? "pdf" : (file.name.split(".").pop() || "png").toLowerCase();
-        const ocr = await ocrImage(buf, ["png", "jpg", "jpeg", "tif", "tiff", "pdf"].includes(ext) ? ext : "png");
+        const ext = (file.name.split(".").pop() || "png").toLowerCase();
+        const ocr = isPdf ? await ocrPdf(buf) : await ocrImage(buf, ["png", "jpg", "jpeg", "tif", "tiff"].includes(ext) ? ext : "png");
         if (ocr.trim().length > cvText.trim().length) cvText = ocr;
       }
     } catch (e) {
@@ -101,18 +117,8 @@ export async function POST(req: Request) {
     const auto = extractSkills(cvText);
     skillsCsv = [...new Set([...skillsCsv, ...auto])].slice(0, 40);
 
-    // Guarda el archivo original en S3/MinIO (solo registra la llave si subió bien)
-    const store = s3();
-    if (store) {
-      try {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
-        const key = `cvs/${session.userId}/${Date.now()}-${safe || "cv"}`;
-        await s3Put(key, buf, file.type || "application/octet-stream");
-        cvKey = key;
-      } catch (e) {
-        console.error("S3 upload:", e instanceof Error ? e.message : e);
-      }
-    }
+    // solo registra la llave si subió bien
+    cvKey = await upload;
   }
 
   await pool.query(
@@ -127,6 +133,19 @@ export async function POST(req: Request) {
        updated_at = now()`,
     [session.userId, cvText, titulo, skillsCsv.join(","), experiencia, cvKey]
   );
+  // momento laboral y jornada: solo valores conocidos ("" borra)
+  for (const [k, ok] of [["etapa", ETAPAS], ["jornada", JORNADAS]] as const) {
+    if (!form.has(k)) continue;
+    const v = String(form.get(k) ?? "");
+    await pool.query(`UPDATE users SET ${k} = $2 WHERE id = $1`, [session.userId, (ok as readonly string[]).includes(v) ? v : null]);
+  }
+  if (form.has("departamento")) {
+    const d = String(form.get("departamento") ?? "");
+    await pool.query("UPDATE users SET departamento = $2 WHERE id = $1", [
+      session.userId,
+      (DEPARTAMENTOS as readonly string[]).includes(d) ? d : null,
+    ]);
+  }
   if (form.has("intereses")) {
     await pool.query("UPDATE users SET intereses = $2 WHERE id = $1", [session.userId, interesesForm.join(",")]);
   }

@@ -34,6 +34,10 @@ export type ProfileInput = {
   cv_text?: string | null;
   experiencia?: string | null;
   departamento?: string | null;
+  /** Lo que declaró la persona: estudiante | primer_empleo | con_experiencia. */
+  etapa?: string | null;
+  /** Jornada buscada: part | full. */
+  jornada?: string | null;
 };
 
 export type MatchResult = {
@@ -143,6 +147,9 @@ export function prepareProfile(p: ProfileInput, index: CorpusIndex, feedback?: {
   else if (years !== null && years >= 2) level = "semi";
   else if (all.has("estudiante") || all.has("sin_experiencia")) level = "estudiante";
   else if (all.has("junior") || years === 0 || years === 1) level = "junior";
+  // lo que la persona dice de sí misma pesa más que lo que deducimos del CV
+  if (p.etapa === "estudiante") level = "estudiante";
+  else if (p.etapa === "primer_empleo" && level !== "estudiante") level = "junior";
 
   const liked = (feedback?.liked ?? []).map((id) => index.vecById(id)).filter((v): v is Vec => !!v);
   const disliked = (feedback?.disliked ?? []).map((id) => index.vecById(id)).filter((v): v is Vec => !!v);
@@ -218,10 +225,14 @@ export function scoreMatch(o: OfferLike, p: PreparedProfile, index: CorpusIndex)
     else level = Math.min(level, expMin - p.years >= 3 ? 0.1 : 0.4);
   }
   const studentFriendly = /estudiante|primer-empleo|joven|pasant/.test((o.tags ?? "").toLowerCase()) || oLevel === "estudiante" || oLevel === "pasantia";
-  if ((p.level === "estudiante" || p.level === "junior") && studentFriendly) {
+  if ((p.level === "estudiante" || p.level === "junior") && studentFriendly && (shared.length > 0 || textRaw >= 0.05)) {
     level = 1;
     reasons.push("Pensado para estudiantes o primer empleo");
   }
+
+  // jornada buscada
+  const partTime = /(^|,)part-time(,|$)/.test((o.tags ?? "").toLowerCase());
+  if (p.jornada === "part" && partTime) reasons.push("Es part time");
 
   // 6. zona
   let loc = 0.6;
@@ -246,8 +257,12 @@ export function scoreMatch(o: OfferLike, p: PreparedProfile, index: CorpusIndex)
     W.skills * skills + W.text * text + W.title * title + W.cat * catScore + W.level * level + W.loc * loc + W.hist * hist;
   // nivel incompatible (p. ej. estudiante -> gerencia): baja fuerte
   if (levelGap >= 2) s *= 0.6;
-  // un aviso que no se parece en nada no debería llegar a "buen match" solo por rubro/zona
-  if (skills === 0 && text < 0.15 && title === 0) s *= 0.5;
+  const unrelated = skills === 0 && text < 0.15 && title === 0;
+  // quien busca part time ve primero esos (si tienen que ver con su perfil); quien busca full time no se pierde en medias jornadas
+  if (p.jornada === "part") s *= partTime && !unrelated ? 1.12 : partTime ? 1 : 0.9;
+  else if (p.jornada === "full" && partTime) s *= 0.85;
+  // un aviso que no se parece en nada no debería llegar a "buen match" solo por rubro/zona/nivel
+  if (unrelated) s *= 0.5;
 
   const score = Math.round(Math.min(100, (s / 0.75) * 100));
   return {

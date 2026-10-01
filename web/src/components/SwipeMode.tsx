@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Oferta } from "@/lib/supabase";
 import { Chip, CompanyAvatar } from "@/components/ui";
 import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
@@ -10,7 +10,9 @@ import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagL
 export type DeckItem = Oferta & { match?: number; matchShared?: string[]; matchMissing?: string[] };
 
 const SWIPE_PX = 110; // distancia que decide
-const FLING_V = 0.55; // px/ms: un gesto rápido y corto también decide
+const FLING_V = 0.5; // px/ms: un gesto rápido y corto también decide
+const FLY_MS = 260;
+const SPRING = "transform 420ms cubic-bezier(0.175, 0.885, 0.32, 1.275)"; // vuelve con un pequeño rebote
 const TAP_PX = 8;
 const PREFETCH_AT = 5; // tarjetas restantes para pedir la página siguiente
 const HINT_KEY = "swipe-hint-v1";
@@ -24,6 +26,7 @@ export function SwipeMode({
   startPage = 1,
   pages,
   onExit,
+  toolbar,
 }: {
   items: DeckItem[];
   /** Filtros activos (querystring sin page/limit) para seguir cargando avisos. */
@@ -31,6 +34,8 @@ export function SwipeMode({
   startPage?: number;
   pages: number;
   onExit: () => void;
+  /** Accesos rápidos (ej. «Cerca de mí») sobre el mazo. */
+  toolbar?: React.ReactNode;
 }) {
   const router = useRouter();
   const [seen, setSeen] = useState<Set<string> | null>(null);
@@ -41,12 +46,14 @@ export function SwipeMode({
   const [saved, setSaved] = useState(0);
   const [discarded, setDiscarded] = useState(0);
   const [last, setLast] = useState<Last | null>(null);
-  const [dx, setDx] = useState(0);
-  const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState<"left" | "right" | null>(null);
   const [error, setError] = useState("");
   const [hint, setHint] = useState(false);
-  const drag = useRef({ x: 0, t: 0, moved: false });
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const drag = useRef({ on: false, x0: 0, y0: 0, dx: 0, dy: 0, lx: 0, ly: 0, lt: 0, vx: 0, vy: 0, moved: false, armed: false });
+  const comeBack = useRef(0); // deshacer: la carta vuelve desde el lado por el que se fue
+  const recenter = useRef(false); // tras el vuelo: centrar la carta nueva antes de pintarla
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tus postulaciones: no volver a mostrar lo que ya guardaste o descartaste.
@@ -109,12 +116,33 @@ export function SwipeMode({
   }, []);
 
   // Optimista: la tarjeta se va ya; el guardado corre por detrás y se revierte si falla.
+  /** Posición del arrastre → variables CSS (transform, sellos, carta de atrás, botones). */
+  const paint = useCallback((dx: number, dy: number) => {
+    const r = rootRef.current;
+    if (!r) return;
+    r.style.setProperty("--dx", String(dx));
+    r.style.setProperty("--dy", String(dy));
+    r.style.setProperty("--save", String(Math.min(1, Math.max(0, dx / SWIPE_PX))));
+    r.style.setProperty("--drop", String(Math.min(1, Math.max(0, -dx / SWIPE_PX))));
+    r.style.setProperty("--lift", String(Math.min(1, Math.abs(dx) / SWIPE_PX)));
+  }, []);
+  const setTransition = (t: string) => {
+    if (cardRef.current) cardRef.current.style.transition = t;
+  };
+
   const act = useCallback(
     (save: boolean) => {
       if (!current || leaving) return;
       dismissHint();
       const item = current;
-      navigator.vibrate?.(8);
+      navigator.vibrate?.(12);
+      // sale volando en la dirección y velocidad del gesto (o del botón)
+      const d = drag.current;
+      const w = window.innerWidth;
+      const vy = Math.max(-2, Math.min(2, d.vy));
+      setTransition(`transform ${FLY_MS}ms cubic-bezier(0.2, 0.7, 0.4, 1)`);
+      rootRef.current?.style.setProperty("--lift", "1");
+      paint((save ? 1 : -1) * (w + 200), d.dy + vy * FLY_MS);
       const appId = fetch("/api/postulaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,18 +168,20 @@ export function SwipeMode({
       else setDiscarded((n) => n + 1);
       setLeaving(save ? "right" : "left");
       timer.current = setTimeout(() => {
+        recenter.current = true;
+        drag.current.dx = drag.current.dy = drag.current.vy = 0;
         setDone((d) => [...d, String(item.id)]);
-        setDx(0);
         setLeaving(null);
-      }, 200);
+      }, FLY_MS);
     },
-    [current, leaving, dismissHint]
+    [current, leaving, dismissHint, paint]
   );
 
   const undo = useCallback(async () => {
     if (!last || leaving) return;
     const prev = last;
     setLast(null);
+    comeBack.current = prev.wasSave ? 1 : -1;
     setDone((d) => d.filter((x) => x !== String(prev.item.id)));
     if (prev.wasSave) setSaved((n) => Math.max(0, n - 1));
     else setDiscarded((n) => Math.max(0, n - 1));
@@ -160,6 +190,24 @@ export function SwipeMode({
     const r = await fetch(`/api/postulaciones?id=${id}`, { method: "DELETE" }).catch(() => null);
     if (!r?.ok) setError("No se pudo deshacer del todo: revisalo en Postulaciones.");
   }, [last, leaving]);
+
+  // deshacer: la carta entra desde el costado por el que se había ido
+  useLayoutEffect(() => {
+    if (recenter.current) {
+      // la de atrás ya estaba en primer plano: el contenido cambia sin animar
+      recenter.current = false;
+      setTransition("none");
+      paint(0, 0);
+    }
+    const side = comeBack.current;
+    if (!side || !cardRef.current) return;
+    comeBack.current = 0;
+    setTransition("none");
+    paint(side * (window.innerWidth + 200), 0);
+    void cardRef.current.offsetWidth; // aplica la posición inicial antes de animar
+    setTransition(SPRING);
+    paint(0, 0);
+  }, [current?.id, paint]);
 
   const open = useCallback(() => {
     if (current) router.push(`/oferta/${current.id}`);
@@ -183,29 +231,56 @@ export function SwipeMode({
 
   function onDown(e: React.PointerEvent<HTMLElement>) {
     if (leaving || (e.target as HTMLElement).closest("a,button")) return;
-    drag.current = { x: e.clientX, t: performance.now(), moved: false };
-    setDragging(true);
+    const box = e.currentTarget.getBoundingClientRect();
+    // agarrada de arriba gira para un lado, de abajo para el otro (como una carta real)
+    rootRef.current?.style.setProperty("--rs", e.clientY - box.top < box.height / 2 ? "1" : "-1");
+    const t = performance.now();
+    drag.current = { on: true, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, lx: e.clientX, ly: e.clientY, lt: t, vx: 0, vy: 0, moved: false, armed: false };
+    setTransition("none");
     e.currentTarget.setPointerCapture(e.pointerId);
   }
   function onMove(e: React.PointerEvent<HTMLElement>) {
-    if (!dragging || leaving) return;
-    const d = e.clientX - drag.current.x;
-    if (Math.abs(d) > TAP_PX) drag.current.moved = true;
-    setDx(d);
+    const d = drag.current;
+    if (!d.on || leaving) return;
+    const t = performance.now();
+    const dt = Math.max(1, t - d.lt);
+    // velocidad suavizada para el vuelo final
+    d.vx = 0.8 * ((e.clientX - d.lx) / dt) + 0.2 * d.vx;
+    d.vy = 0.8 * ((e.clientY - d.ly) / dt) + 0.2 * d.vy;
+    d.lx = e.clientX;
+    d.ly = e.clientY;
+    d.lt = t;
+    d.dx = e.clientX - d.x0;
+    d.dy = (e.clientY - d.y0) * 0.6; // en vertical se mueve, pero con resistencia
+    if (Math.hypot(d.dx, d.dy) > TAP_PX) d.moved = true;
+    // vibración corta al cruzar el punto de decisión
+    const armed = Math.abs(d.dx) > SWIPE_PX;
+    if (armed !== d.armed) {
+      d.armed = armed;
+      if (armed) navigator.vibrate?.(6);
+    }
+    paint(d.dx, d.dy);
   }
-  function onUp(e: React.PointerEvent<HTMLElement>) {
-    if (!dragging) return;
-    setDragging(false);
-    const d = e.clientX - drag.current.x;
-    const v = Math.abs(d) / Math.max(1, performance.now() - drag.current.t);
-    if (!drag.current.moved) {
-      setDx(0);
+  function onUp() {
+    const d = drag.current;
+    if (!d.on) return;
+    d.on = false;
+    if (!d.moved) {
+      paint(0, 0);
       open();
       return;
     }
-    if (d > SWIPE_PX || (d > 40 && v > FLING_V)) act(true);
-    else if (d < -SWIPE_PX || (d < -40 && v > FLING_V)) act(false);
-    else setDx(0);
+    if (d.dx > SWIPE_PX || (d.dx > 40 && d.vx > FLING_V)) act(true);
+    else if (d.dx < -SWIPE_PX || (d.dx < -40 && d.vx < -FLING_V)) act(false);
+    else {
+      setTransition(SPRING);
+      paint(0, 0);
+    }
+  }
+  function onCancel() {
+    drag.current.on = false;
+    setTransition(SPRING);
+    paint(0, 0);
   }
 
   if (!seen) {
@@ -242,27 +317,15 @@ export function SwipeMode({
     );
   }
 
-  const style: React.CSSProperties = leaving
-    ? {
-        transform: `translateX(${leaving === "right" ? 520 : -520}px) rotate(${leaving === "right" ? 20 : -20}deg)`,
-        opacity: 0,
-        transition: "transform .2s ease-in, opacity .2s ease-in",
-      }
-    : {
-        transform: `translateX(${dx}px) rotate(${dx / 20}deg)`,
-        transition: dragging ? "none" : "transform .25s cubic-bezier(0.32,0.72,0,1)",
-      };
-  const saveOp = Math.min(1, Math.max(0, dx / SWIPE_PX));
-  const dropOp = Math.min(1, Math.max(0, -dx / SWIPE_PX));
-  const lift = leaving ? 1 : Math.min(1, Math.abs(dx) / SWIPE_PX);
   const seenCount = saved + discarded;
 
   return (
-    <div className="mx-auto mt-4 max-w-md select-none sm:mt-6">
-      <div className="flex items-center justify-between text-xs font-bold text-stone-500">
-        <span>Ordenadas por match</span>
-        <span className="tnum">
-          <span className="text-[#15803d]">{saved} guardadas</span> · {discarded} descartadas
+    <div ref={rootRef} className="mx-auto mt-3 max-w-md select-none sm:mt-6"
+      style={{ "--dx": 0, "--dy": 0, "--save": 0, "--drop": 0, "--lift": 0, "--rs": 1 } as React.CSSProperties}>
+      <div className="flex items-center justify-between gap-2 text-xs font-bold text-stone-500">
+        {toolbar ?? <span>Ordenadas por match</span>}
+        <span className="tnum shrink-0" aria-label={`${saved} guardadas, ${discarded} descartadas`}>
+          <span className="text-[#15803d]">♥ {saved}</span> · ✕ {discarded}
         </span>
       </div>
       <div className="mt-2 h-1 overflow-hidden rounded-full bg-stone-200" aria-hidden>
@@ -270,30 +333,42 @@ export function SwipeMode({
           style={{ width: `${Math.min(100, (seenCount / Math.max(1, seenCount + remaining.length)) * 100)}%` }} />
       </div>
 
-      <div className="relative mt-3" style={{ height: "clamp(320px, calc(100svh - 370px), 480px)" }}>
-        {next && (
+      <div className="relative mt-3" style={{ height: "clamp(250px, calc(100svh - 425px - env(safe-area-inset-bottom)), 480px)" }}>
+        {/* mazo: dos cartas asoman detrás y suben a medida que arrastrás la de arriba */}
+        {remaining[2] && (
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white"
-            style={{ transform: `scale(${0.95 + 0.05 * lift}) translateY(${10 - 10 * lift}px)`, opacity: 0.6 + 0.4 * lift, transition: dragging ? "none" : "transform .25s, opacity .25s" }}>
+            style={{ transform: "translateY(calc(20px - 10px * var(--lift))) scale(calc(0.9 + 0.05 * var(--lift)))", opacity: 0.5, transition: "transform 150ms ease-out" }}>
+            <CardBody o={remaining[2]} />
+          </div>
+        )}
+        {next && (
+          <div key={String(next.id)} aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white shadow-[var(--shadow-card)]"
+            style={{ transform: "translateY(calc(10px - 10px * var(--lift))) scale(calc(0.95 + 0.05 * var(--lift)))", opacity: "calc(0.7 + 0.3 * var(--lift))", transition: "transform 150ms ease-out, opacity 150ms ease-out" }}>
             <CardBody o={next} />
           </div>
         )}
         <article
+          ref={cardRef}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
-          onPointerCancel={() => { setDragging(false); setDx(0); }}
-          style={{ ...style, touchAction: "pan-y" }}
+          onPointerCancel={onCancel}
+          style={{
+            transform: "translate3d(calc(var(--dx) * 1px), calc(var(--dy) * 1px), 0) rotate(calc(var(--dx) * var(--rs) * 0.06deg))",
+            touchAction: "none",
+            willChange: "transform",
+          }}
           aria-label={`${current.titulo ?? "Aviso"}. Flecha derecha para guardar, izquierda para descartar.`}
           className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white shadow-[var(--shadow-lift)] active:cursor-grabbing"
         >
           <div aria-hidden className="pointer-events-none absolute inset-0 z-10 rounded-2xl"
-            style={{ boxShadow: `inset 0 0 0 3px rgba(22,163,74,${saveOp}), inset 0 0 0 3px rgba(220,38,38,${dropOp})`, background: `rgba(22,163,74,${saveOp * 0.06})` }} />
+            style={{ boxShadow: "inset 0 0 0 3px rgb(22 163 74 / var(--save)), inset 0 0 0 3px rgb(220 38 38 / var(--drop))", background: "rgb(22 163 74 / calc(var(--save) * 0.06))" }} />
           <span className="pointer-events-none absolute left-5 top-5 z-20 rounded-lg border-[3px] border-green-600 bg-white/90 px-2.5 py-0.5 text-base font-bold uppercase tracking-wide text-green-600"
-            style={{ opacity: saveOp, transform: "rotate(-10deg)" }}>
+            style={{ opacity: "var(--save)", transform: "rotate(-10deg) scale(calc(0.8 + 0.2 * var(--save)))" }}>
             Guardar
           </span>
           <span className="pointer-events-none absolute right-5 top-5 z-20 rounded-lg border-[3px] border-red-600 bg-white/90 px-2.5 py-0.5 text-base font-bold uppercase tracking-wide text-red-600"
-            style={{ opacity: dropOp, transform: "rotate(10deg)" }}>
+            style={{ opacity: "var(--drop)", transform: "rotate(10deg) scale(calc(0.8 + 0.2 * var(--drop)))" }}>
             Paso
           </span>
           <CardBody o={current} />
@@ -320,7 +395,7 @@ export function SwipeMode({
       <div className="mt-4 flex items-center justify-center gap-4">
         <button onClick={() => act(false)} disabled={!!leaving} aria-label="Paso (flecha izquierda)"
           className="grid h-16 w-16 place-items-center rounded-full border border-red-200 bg-white text-red-600 shadow-[var(--shadow-card)] transition hover:bg-red-50 active:scale-95 disabled:opacity-40"
-          style={{ transform: `scale(${1 + dropOp * 0.12})`, background: dropOp ? `rgba(254,226,226,${dropOp})` : undefined }}>
+          style={{ transform: "scale(calc(1 + var(--drop) * 0.15))", background: "color-mix(in srgb, #fee2e2 calc(var(--drop) * 100%), white)" }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
         <button onClick={undo} disabled={!last || !!leaving} aria-label="Deshacer (Z)"
@@ -329,7 +404,7 @@ export function SwipeMode({
         </button>
         <button onClick={() => act(true)} disabled={!!leaving} aria-label="Guardar (flecha derecha)"
           className="grid h-16 w-16 place-items-center rounded-full border border-green-200 bg-white text-green-600 shadow-[var(--shadow-card)] transition hover:bg-green-50 active:scale-95 disabled:opacity-40"
-          style={{ transform: `scale(${1 + saveOp * 0.12})`, background: saveOp ? `rgba(220,252,231,${saveOp})` : undefined }}>
+          style={{ transform: "scale(calc(1 + var(--save) * 0.15))", background: "color-mix(in srgb, #dcfce7 calc(var(--save) * 100%), white)" }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /></svg>
         </button>
       </div>

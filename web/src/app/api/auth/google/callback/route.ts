@@ -67,6 +67,7 @@ export async function GET(req: Request) {
   const nombre = (g.name || email.split("@")[0]).slice(0, 120);
 
   // find-or-create: por google_id, sino por email (linkea la cuenta)
+  let isNew = false;
   let row = (await pool.query("SELECT id, nombre, email FROM users WHERE google_id = $1", [g.sub])).rows[0];
   const refCode = req.headers.get("cookie")?.match(/(?:^|;\s*)ref=([a-z0-9]{4,16})/i)?.[1]?.toLowerCase() ?? null;
   const mkCode = () =>
@@ -86,6 +87,7 @@ export async function GET(req: Request) {
         const rr = await pool.query("SELECT id FROM users WHERE referral_code = $1", [refCode]);
         refId = rr.rows[0]?.id ?? null;
       }
+      isNew = true;
       row = (
         await pool.query(
           "INSERT INTO users (nombre, email, google_id, avatar_url, referral_code, referred_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, nombre, email",
@@ -108,7 +110,7 @@ export async function GET(req: Request) {
     /* analytics nunca rompe auth */
   }
   const next = safeNext(/(?:^|;\s*)g_next=([^;]+)/.exec(req.headers.get("cookie") ?? "")?.[1]);
-  const res = NextResponse.redirect(new URL(next || "/ofertas", base));
+  const res = NextResponse.redirect(new URL(next || (isNew ? "/bienvenida" : "/ofertas"), base));
   res.cookies.delete("g_state");
   res.cookies.delete("g_next");
   return res;

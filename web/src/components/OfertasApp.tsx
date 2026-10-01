@@ -24,9 +24,18 @@ type Resp = {
   data: (Oferta & { match?: number; matchShared?: string[]; matchMissing?: string[]; matchReasons?: string[] })[];
   facets: Facets;
   error?: string;
+  /** Filtros con los que se pidió esta respuesta (el mazo del swipe se rearma cuando cambian). */
+  q?: string;
 };
 
-export type Filters = { q: string; categoria: string; modalidad: string; fuente: string; departamento: string; seniority: string; orden?: string; page: number };
+export type Filters = { q: string; categoria: string; modalidad: string; fuente: string; departamento: string; seniority: string; extra?: string; orden?: string; page: number };
+
+const QUICK: [string, string][] = [
+  ["part_time", "Part time"],
+  ["estudiantes", "Para estudiantes"],
+  ["sin_experiencia", "Sin experiencia"],
+  ["con_salario", "Con salario"],
+];
 
 function qs(f: Filters) {
   const p = new URLSearchParams();
@@ -36,6 +45,7 @@ function qs(f: Filters) {
   if (f.fuente) p.set("fuente", f.fuente);
   if (f.departamento) p.set("departamento", f.departamento);
   if (f.seniority) p.set("seniority", f.seniority);
+  if (f.extra) p.set("extra", f.extra);
   if (f.orden) p.set("orden", f.orden);
   if (f.page > 1) p.set("page", String(f.page));
   p.set("limit", "50");
@@ -50,11 +60,16 @@ export default function OfertasApp({
   const [f, setF] = useState<Filters>(initial);
   const [qDraft, setQDraft] = useState(initial.q);
   const [locMsg, setLocMsg] = useState("");
+  const [nearDept, setNearDept] = useState(""); // departamento que puso «Cerca de mí»
+  const [locating, setLocating] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"lista" | "swipe">("lista");
   const [showFilters, setShowFilters] = useState(false);
   const activeFilters = [f.categoria, f.modalidad, f.fuente, f.departamento, f.seniority].filter(Boolean).length;
+  const extras = (f.extra ?? "").split(",").filter(Boolean);
+  const toggleExtra = (k: string) =>
+    set({ extra: (extras.includes(k) ? extras.filter((x) => x !== k) : [...extras, k]).join(",") });
 
   // en celular arranca en swipe, formato principal móvil
   useEffect(() => {
@@ -66,7 +81,7 @@ export default function OfertasApp({
     try {
       const r = await fetch(`/api/ofertas?${qs(ff)}`);
       const d = (await r.json()) as Resp;
-      setResp(r.ok ? d : { ...d, data: [], facets: { counts: {}, remotos: 0, topCats: [], unread: 0, hasProfile: false } });
+      setResp(r.ok ? { ...d, q: qs(ff) } : { ...d, data: [], facets: { counts: {}, remotos: 0, topCats: [], unread: 0, hasProfile: false } });
     } catch {
       setResp({ total: 0, page: 1, pages: 1, data: [], facets: { counts: {}, remotos: 0, topCats: [], unread: 0, hasProfile: false }, error: "Error de red." });
     } finally {
@@ -76,8 +91,8 @@ export default function OfertasApp({
 
   useEffect(() => {
     load(f);
-    const url = `/ofertas${qs(f).replace(/&?limit=50/, "")}`;
-    window.history.replaceState(null, "", url === "/ofertas" ? "/ofertas" : url);
+    const q = qs(f).replace(/&?limit=50/, "");
+    window.history.replaceState(null, "", q ? `/ofertas?${q}` : "/ofertas");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [f]);
 
@@ -89,17 +104,46 @@ export default function OfertasApp({
       setLocMsg("Tu navegador no soporta ubicación.");
       return;
     }
-    setLocMsg("Ubicando…");
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const n = nearestDepartamento(pos.coords.latitude, pos.coords.longitude);
+        setLocating(false);
+        setNearDept(n.departamento);
         set({ departamento: n.departamento });
-        setLocMsg(`Cerca de ${n.departamento} (~${n.km} km)`);
       },
-      () => setLocMsg("No pudimos obtener tu ubicación."),
-      { timeout: 10000 }
+      () => {
+        setLocating(false);
+        setLocMsg("No pudimos obtener tu ubicación. Revisá el permiso de ubicación del navegador.");
+      },
+      { timeout: 10000, maximumAge: 10 * 60 * 1000 }
     );
   }
+
+  // Accesos rápidos visibles siempre (lista y swipe), sin abrir Filtros
+  const nearOn = !!f.departamento && f.departamento === nearDept;
+  const chip = (on: boolean) =>
+    `inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold transition active:scale-95 ${
+      on ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"
+    }`;
+  const quick = (
+    <>
+      <button type="button" onClick={() => (nearOn ? (setNearDept(""), set({ departamento: "" })) : locate())}
+        aria-pressed={nearOn} className={`${chip(nearOn)} [&_svg]:h-3.5 [&_svg]:w-3.5`}>
+        <IconPin />
+        {locating ? "Ubicando…" : nearOn ? <>Cerca: {nearDept} <span aria-hidden>✕</span></> : "Cerca de mí"}
+      </button>
+      <button type="button" onClick={() => set({ modalidad: f.modalidad === "remoto" ? "" : "remoto" })}
+        aria-pressed={f.modalidad === "remoto"} className={chip(f.modalidad === "remoto")}>
+        Remoto
+      </button>
+      {QUICK.map(([k, label]) => (
+        <button key={k} type="button" onClick={() => toggleExtra(k)} aria-pressed={extras.includes(k)} className={chip(extras.includes(k))}>
+          {label}
+        </button>
+      ))}
+    </>
+  );
 
   return (
     <>
@@ -165,12 +209,8 @@ export default function OfertasApp({
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
-            <button type="button" onClick={locate} title="Trabajos cerca de mí"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm font-bold text-stone-600 hover:border-[#0a2156] hover:text-[#0a2156]">
-              <IconPin /> Cerca de mí
-            </button>
-            {(f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority || f.q) && (
-              <button type="button" onClick={() => { setQDraft(""); setLocMsg(""); setF({ q: "", categoria: "", modalidad: "", fuente: "", departamento: "", seniority: "", page: 1 }); }}
+            {(f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority || f.extra || f.q) && (
+              <button type="button" onClick={() => { setQDraft(""); setLocMsg(""); setNearDept(""); setF({ q: "", categoria: "", modalidad: "", fuente: "", departamento: "", seniority: "", extra: "", page: 1 }); }}
                 className="shrink-0 rounded-xl px-2 py-2 text-sm font-bold text-stone-500 underline hover:text-[#0038a8]">
                 Limpiar
               </button>
@@ -181,7 +221,7 @@ export default function OfertasApp({
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
+      <div className="mx-auto max-w-6xl overflow-x-clip px-4 pb-24 sm:px-6">
         {resp && !resp.error && !resp.facets.hasProfile && (
           <div className={view === "swipe" ? "max-sm:hidden" : ""}>
           <Link href="/perfil" className="notice mt-4 transition hover:border-[#93c5fd] sm:mt-6">
@@ -196,7 +236,7 @@ export default function OfertasApp({
         )}
         <div className="flex items-center justify-between gap-2 pt-5 sm:pt-6">
           <h1 className="min-w-0 truncate font-[var(--font-display)] text-xl font-bold sm:text-2xl">
-            {f.q || f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority ? "Resultados" : resp?.orden === "relevancia" ? "Para vos" : "Ofertas recientes"}
+            {f.q || f.categoria || f.modalidad || f.fuente || f.departamento || f.seniority || f.extra ? "Resultados" : resp?.orden === "relevancia" ? "Para vos" : "Ofertas recientes"}
             <span className="ml-2 hidden text-base font-bold text-stone-400 min-[400px]:inline sm:inline">{resp ? `${resp.total.toLocaleString("es-UY")} avisos` : ""}</span>
           </h1>
           <div className="flex items-center gap-2">
@@ -221,16 +261,13 @@ export default function OfertasApp({
         </div>
 
         <div className={`scrollbar-none -mx-4 mt-3 gap-2 overflow-x-auto px-4 text-xs font-bold sm:mx-0 sm:flex sm:flex-wrap sm:px-0 ${view === "swipe" ? "hidden" : "flex"}`}>
+          {quick}
           {FUENTES.filter((ff) => (resp?.facets.counts[ff] ?? 0) > 0).map((ff) => (
             <button key={ff} onClick={() => set({ fuente: f.fuente === ff ? "" : ff })}
               className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.fuente === ff ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
               {fuenteLabel(ff)} · {resp?.facets.counts[ff] ?? "…"}
             </button>
           ))}
-          <button onClick={() => set({ modalidad: f.modalidad === "remoto" ? "" : "remoto" })}
-            className={`shrink-0 rounded-full border px-3 py-1.5 transition ${f.modalidad === "remoto" ? "border-[#0a2156] bg-[#0a2156] text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400"}`}>
-            Remoto · {resp?.facets.remotos ?? "…"}
-          </button>
         </div>
 
         {(resp?.facets.topCats.length ?? 0) > 0 && (
@@ -257,12 +294,13 @@ export default function OfertasApp({
           </div>
         ) : view === "swipe" && resp && !resp.error ? (
           <SwipeMode
-            key={`${qs({ ...f, page: 1 })}|${resp.page}`}
+            key={resp.q ?? ""}
             items={resp.data}
             query={qs({ ...f, page: 1 }).replace(/&?limit=50/, "")}
             startPage={resp.page}
             pages={resp.pages}
             onExit={() => setView("lista")}
+            toolbar={<div className="scrollbar-none flex min-w-0 gap-1.5 overflow-x-auto">{quick}</div>}
           />
         ) : (
           <div className={`mt-6 grid gap-5 md:grid-cols-2 ${loading ? "opacity-60" : ""}`}>

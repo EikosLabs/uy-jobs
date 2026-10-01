@@ -17,3 +17,7 @@ create index if not exists idx_users_email on users (email);
 ALTER TABLE users OWNER TO uyjobs;
 GRANT ALL PRIVILEGES ON TABLE users TO uyjobs;
 GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO uyjobs;
+
+-- Personalización (2026-10-01): momento laboral y jornada buscada
+ALTER TABLE users ADD COLUMN IF NOT EXISTS etapa text;    -- estudiante | primer_empleo | con_experiencia
+ALTER TABLE users ADD COLUMN IF NOT EXISTS jornada text;  -- part | full

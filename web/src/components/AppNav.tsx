@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getPool } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { IconBell, Logo, firstName } from "@/components/ui";
+import { IconBell, IconBrief, IconCheck, IconPin, IconUser, Logo, firstName } from "@/components/ui";
 import { LogoutButton } from "@/components/LogoutButton";
 import { MobileMenu, type NavLink } from "@/components/MobileMenu";
 
@@ -24,6 +24,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
         { href: "/notificaciones", label: "Matches", badge: unread, current: active === "avisos" },
         { href: "/referidos", label: "Invitar", current: active === "referidos" },
         { href: "/perfil", label: "Mi perfil", current: active === "perfil" },
+        { href: "/bienvenida", label: "Cómo funciona" },
         ...(session.isAdmin ? [{ href: "/admin", label: "Admin", current: active === "admin" } as NavLink] : []),
       ]
     : [];
@@ -40,7 +41,22 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
       )}
     </Link>
   );
+  const tab = (href: string, label: string, key: string, icon: React.ReactNode, badge?: number) => (
+    <Link key={href} href={href} aria-current={active === key ? "page" : undefined}
+      className={`relative flex flex-1 flex-col items-center gap-0.5 pb-1.5 pt-2 text-[11px] font-semibold [&_svg]:h-6 [&_svg]:w-6 ${
+        active === key ? "text-[#0038a8]" : "text-stone-500"
+      }`}>
+      {icon}
+      {label}
+      {!!badge && (
+        <span className="absolute left-1/2 top-1 ml-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#fcd116] px-1 text-[10px] font-bold text-[#0a2156]">
+          {badge}
+        </span>
+      )}
+    </Link>
+  );
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-[#e7e5e4] bg-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 sm:gap-2 sm:px-6">
         <Logo />
@@ -58,18 +74,12 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
         <div className="ml-auto flex items-center gap-2">
           {session ? (
             <>
-              <Link href="/notificaciones" title="Matches" aria-label="Matches"
-                className="relative rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-sm font-bold text-[#0a2156] hover:bg-stone-50 md:hidden">
-                <IconBell />
-                {unread > 0 && (
-                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#fcd116] px-1 text-[10px] font-bold text-[#0a2156]">
-                    {unread}
-                  </span>
-                )}
-              </Link>
               <span className="hidden rounded-full bg-[#0038a8]/10 px-3 py-1.5 text-xs font-bold text-[#0038a8] sm:block">
                 {firstName(session.nombre)}
               </span>
+              <Link href="/bienvenida" className="hidden rounded-lg px-2 py-2 text-sm font-semibold text-stone-500 hover:bg-stone-100 md:block">
+                Cómo funciona
+              </Link>
               <span className="hidden sm:block">
                 <LogoutButton />
               </span>
@@ -92,6 +102,17 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
         </div>
       </div>
     </header>
+    {session && (
+      <nav aria-label="Secciones principales"
+        className="tabbar fixed inset-x-0 bottom-0 z-40 flex border-t border-[#e7e5e4] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        {tab("/ofertas", "Ofertas", "ofertas", <IconBrief />)}
+        {tab("/mapa", "Mapa", "mapa", <IconPin />)}
+        {tab("/postulaciones", "Postulaciones", "postulaciones", <IconCheck />)}
+        {tab("/notificaciones", "Matches", "avisos", <IconBell />, unread)}
+        {tab("/perfil", "Perfil", "perfil", <IconUser />)}
+      </nav>
+    )}
+    </>
   );
 }
 

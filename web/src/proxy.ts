@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { safeNext } from "@/lib/next";
 
-const PROTECTED_PREFIXES = ["/ofertas", "/oferta", "/admin"];
+const PROTECTED_PREFIXES = ["/ofertas", "/oferta", "/admin", "/bienvenida"];
 const GUEST_ONLY = ["/login", "/register"];
 
 async function hasSession(req: NextRequest) {

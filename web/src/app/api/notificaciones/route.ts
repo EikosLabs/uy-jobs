@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { MATCH_DISPLAY } from "@/lib/match";
-import { getIndex, loadProfile } from "@/lib/reco-server";
+import { getIndex, loadProfile, uniqueOffers } from "@/lib/reco-server";
 import { label, scoreMatch } from "@/lib/recommend";
 
 /** Lista notificaciones con datos de la oferta. */
@@ -25,12 +25,13 @@ export async function GET() {
   // Top matches en vivo (el cron genera max 25/día; esto muestra el resto)
   let top: unknown[] = [];
   try {
-    const { index, offers } = await getIndex(pool);
+    const idx = await getIndex(pool);
+    const { index } = idx;
     const prof = await loadProfile(pool, session.userId, index);
     if (prof && (prof.skillSet.size || prof.cv_text)) {
       const apps = await pool.query("SELECT oferta_id FROM applications WHERE user_id = $1", [session.userId]);
-      const seen = new Set([...r.rows.map((x) => Number(x.oferta_id)), ...apps.rows.map((x) => Number(x.oferta_id))]);
-      const best = [...offers.values()]
+      const seen = new Set([...r.rows, ...apps.rows].map((x) => idx.canon.get(Number(x.oferta_id)) ?? Number(x.oferta_id)));
+      const best = uniqueOffers(idx)
         .filter((o) => !seen.has(o.id!))
         .map((o) => ({ o, m: scoreMatch(o, prof, index) }))
         .filter((x) => x.m.score >= MATCH_DISPLAY)

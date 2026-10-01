@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/track";
+import { shrinkImage } from "@/lib/shrink";
 import { catLabel, tagLabel } from "@/lib/format";
-import { CATEGORIAS } from "@/lib/supabase";
+import { CATEGORIAS, ETAPAS, JORNADAS } from "@/lib/supabase";
 
 type Profile = { cv_text: string; titulo: string; skills: string; experiencia: string };
 type Gap = { skill: string; n: number };
@@ -14,6 +15,8 @@ export default function PerfilClient() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [matches, setMatches] = useState(0);
   const [intereses, setIntereses] = useState<string[]>([]);
+  const [etapa, setEtapa] = useState("");
+  const [jornada, setJornada] = useState("");
   const [gaps, setGaps] = useState<Gap[]>([]);
   const [suggested, setSuggested] = useState<Suggested[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
@@ -24,11 +27,12 @@ export default function PerfilClient() {
   const [fileErr, setFileErr] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
-  function pick(f: File | null | undefined) {
+  async function pick(f0: File | null | undefined) {
     setFileErr("");
-    if (!f) return;
-    const okType = /\.(pdf|png|jpe?g)$/i.test(f.name);
+    if (!f0) return;
+    const okType = /\.(pdf|png|jpe?g)$/i.test(f0.name);
     if (!okType) return setFileErr("Ese formato no lo leemos. Subí un PDF, PNG o JPG.");
+    const f = await shrinkImage(f0);
     if (f.size > 6 * 1024 * 1024) return setFileErr("El archivo pesa más de 6 MB. Probá con un PDF más liviano.");
     setFile(f);
   }
@@ -54,6 +58,8 @@ export default function PerfilClient() {
         setGaps(d.gaps ?? []);
         setSuggested(d.suggested ?? []);
         setIntereses((d.intereses as string[]) ?? []);
+        setEtapa(d.etapa ?? "");
+        setJornada(d.jornada ?? "");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -207,6 +213,21 @@ export default function PerfilClient() {
                 </div>
                 <p className="mt-1.5 text-xs font-medium text-stone-500">Si no elegís ninguno, los deducimos de tu CV.</p>
               </fieldset>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="etapa" className="text-sm font-bold">¿En qué momento estás?</label>
+                  <select id="etapa" name="etapa" value={etapa} onChange={(e) => setEtapa(e.target.value)} className="field mt-1.5">
+                    <option value="">Sin especificar</option>
+                    {ETAPAS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="jornada" className="text-sm font-bold">¿Qué jornada buscás?</label>
+                  <select id="jornada" name="jornada" value={jornada} onChange={(e) => setJornada(e.target.value)} className="field mt-1.5">
+                    {JORNADAS.map(([v, l]) => <option key={l} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="text-sm font-bold">Habilidades (separadas por coma)</label>
                 <input name="skills" defaultValue={skills.join(", ")} placeholder="Se detectan solas del CV"

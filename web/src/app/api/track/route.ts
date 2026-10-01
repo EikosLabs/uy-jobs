@@ -12,6 +12,9 @@ const ALLOWED = new Set([
   "application_saved",
   "filter_used",
   "share_referral_clicked",
+  "onboarding_step",
+  "onboarding_skip",
+  "onboarding_done",
 ]);
 
 export async function POST(req: Request) {

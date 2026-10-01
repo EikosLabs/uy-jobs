@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPool } from "@/lib/db";
+import { DUP_KEY, getPool } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
 import { AppNav } from "@/components/AppNav";
 import { Chip, CompanyAvatar } from "@/components/ui";
@@ -36,11 +36,22 @@ export default async function OfertaPage({
   const tags = (o.tags ?? "").split(",").filter(Boolean);
 
   // compatibilidad y parecidas (motor v2: habilidades, texto, título, rubro, nivel, zona, historial)
-  const { index, offers } = await getIndex(pool);
+  const { index, offers, canon } = await getIndex(pool);
   const prof = await loadProfile(pool, session.userId, index);
   const hasCv = !!prof && (prof.skillSet.size > 0 || !!prof.cv_text);
   const compat = prof && hasCv ? scoreMatch(o, prof, index) : null;
-  const simIds = similarTo(num, index, 6);
+  // sin copias del mismo aviso ni repetidos entre sí
+  const group = canon.get(num) ?? num;
+  const simIds = similarTo(num, index, 30)
+    .filter((x) => canon.get(x.id) === x.id && x.id !== group)
+    .slice(0, 6);
+  const copies = (
+    await pool.query(
+      `SELECT id, ubicacion, departamento, fuente FROM ofertas
+       WHERE ${DUP_KEY} = (SELECT ${DUP_KEY} FROM ofertas WHERE id = $1) AND id <> $1 ORDER BY departamento, id`,
+      [num]
+    )
+  ).rows;
   const simRows = simIds.length
     ? (await pool.query("SELECT id, titulo, empresa, ubicacion, categoria, modalidad FROM ofertas WHERE id = ANY($1::bigint[])", [simIds.map((x) => x.id)])).rows
     : [];
@@ -76,6 +87,19 @@ export default async function OfertaPage({
                 </p>
               </div>
             </div>
+            {copies.length > 0 && (
+              <p className="mt-4 text-sm font-medium text-stone-600">
+                También publicada en{" "}
+                {copies.map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 && ", "}
+                    <Link href={`/oferta/${c.id}`} className="font-semibold text-[#0038a8] hover:underline">
+                      {ubicacionLabel(c.ubicacion) || c.departamento || fuenteLabel(c.fuente)}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+            )}
             {o.descripcion && (
               <>
                 <h2 className="mt-8 text-xs font-bold uppercase tracking-widest text-stone-400">Descripción</h2>

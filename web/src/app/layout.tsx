@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import { RevealInit } from "@/components/RevealInit";
+import { PwaInit } from "@/components/Pwa";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -13,6 +14,13 @@ export const metadata: Metadata = {
   title: "Trabajogpt · Todos los trabajos de Uruguay en un lugar",
   description:
     "Miles de ofertas de Computrabajo, BuscoJobs y LinkedIn reunidas, categorizadas y actualizadas a diario. Creá tu cuenta gratis.",
+  appleWebApp: { capable: true, title: "Trabajogpt", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -28,7 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div id="contenido" className="flex min-h-full flex-1 flex-col">
           {children}
         </div>
+        <a href="https://eikoslabs.com" target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '14px 16px', fontSize: 12, color: 'inherit', opacity: 0.7, textDecoration: 'none' }}>Powered by <img src="/eikoslabs.svg" alt="" width={16} height={17} /> <b>Eikos Labs</b></a>
         <RevealInit />
+        <PwaInit />
       </body>
     </html>
   );

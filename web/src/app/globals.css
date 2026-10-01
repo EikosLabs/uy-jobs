@@ -255,3 +255,38 @@ select.field option {
   background: #d6d3d1;
   border-radius: 8px;
 }
+
+/* Sensación de app nativa en el teléfono */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+a, button, label, summary, [role="button"] {
+  touch-action: manipulation;
+}
+.tabbar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (max-width: 767px) {
+  body:has(.tabbar) {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+}
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Onboarding: entrada de cada paso */
+@keyframes onb-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.onb-in {
+  animation: onb-in 420ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .onb-in { animation: none; }
+}

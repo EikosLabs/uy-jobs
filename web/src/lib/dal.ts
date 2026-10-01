@@ -11,6 +11,8 @@ export type SafeUser = {
   telefono: string | null;
   departamento: string | null;
   intereses: string;
+  etapa: string | null;
+  jornada: string | null;
   avatar_url: string | null;
   created_at: string | null;
 };
@@ -27,7 +29,7 @@ export const getUser = cache(async (): Promise<SafeUser | null> => {
   const pool = getPool();
   if (!pool) return null;
   const r = await pool.query(
-    "SELECT id, nombre, email, telefono, departamento, intereses, avatar_url, created_at FROM users WHERE id = $1",
+    "SELECT id, nombre, email, telefono, departamento, intereses, etapa, jornada, avatar_url, created_at FROM users WHERE id = $1",
     [session.userId]
   );
   return (r.rows[0] as SafeUser | undefined) ?? null;

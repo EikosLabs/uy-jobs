@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
-import { getPool } from "@/lib/db";
+import { DUP_KEY, getPool } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { getIndex, loadProfile } from "@/lib/reco-server";
 import { label, scoreMatch, type MatchResult } from "@/lib/recommend";
 import { FUENTES } from "@/lib/supabase";
+
+/** Filtros rápidos (chips). Las etiquetas las calcula el engine (enrich). */
+const EXTRAS: Record<string, string> = {
+  part_time: "',' || COALESCE(tags, '') || ',' LIKE '%,part-time,%'",
+  estudiantes: "(',' || COALESCE(tags, '') || ',' LIKE '%,estudiantes,%' OR seniority IN ('estudiante', 'pasantia'))",
+  sin_experiencia: "(',' || COALESCE(tags, '') || ',' LIKE '%,primer-empleo,%' OR experiencia_min = 0)",
+  con_salario: "salario_num IS NOT NULL",
+};
 
 const PAGE_SIZE_MAX = 100;
 const PAGE_SIZE_DEFAULT = 50;
@@ -56,7 +64,10 @@ export async function GET(req: Request) {
     vals.push(seniority);
     where.push(`seniority = $${vals.length}`);
   }
+  for (const x of (u.searchParams.get("extra") ?? "").split(",")) if (EXTRAS[x]) where.push(EXTRAS[x]);
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  // un aviso por grupo de duplicados, elegido dentro de lo filtrado (filtrando Salto, aparece la copia de Salto)
+  const uniq = `(SELECT DISTINCT ON (${DUP_KEY}) * FROM ofertas ${whereSql} ORDER BY ${DUP_KEY}, id) AS ofertas`;
   const ordenParam = u.searchParams.get("orden");
   try {
     const { index, offers } = await getIndex(pool);
@@ -69,7 +80,7 @@ export async function GET(req: Request) {
     let total = 0;
     let rows: Record<string, unknown>[] = [];
     if (orden === "relevancia" && prof) {
-      const ids = await pool.query(`SELECT id, fecha_scrapeo FROM ofertas ${whereSql}`, vals);
+      const ids = await pool.query(`SELECT id, fecha_scrapeo FROM ${uniq}`, vals);
       total = ids.rowCount ?? 0;
       const ranked = ids.rows
         .map((r) => {
@@ -83,23 +94,23 @@ export async function GET(req: Request) {
       const byId = new Map(full.rows.map((o) => [Number(o.id), o]));
       rows = pageItems.filter((x) => byId.has(x.id)).map((x) => attach(byId.get(x.id)!, x.m));
     } else {
-      const c = await pool.query(`SELECT count(*)::int AS n FROM ofertas ${whereSql}`, vals);
+      const c = await pool.query(`SELECT count(*)::int AS n FROM ${uniq}`, vals);
       total = c.rows[0]?.n ?? 0;
       const data = await pool.query(
-        `SELECT * FROM ofertas ${whereSql} ORDER BY fecha_scrapeo DESC NULLS LAST, id DESC LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
+        `SELECT * FROM ${uniq} ORDER BY fecha_scrapeo DESC NULLS LAST, id DESC LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
         [...vals, limit, (page - 1) * limit]
       );
       rows = data.rows.map((o) => attach(o, prof ? scoreMatch(o, prof, index) : null));
     }
-    const prof0 = await pool.query("SELECT 1 FROM profiles WHERE user_id = $1", [session.userId]);
+    const prof0 = await pool.query("SELECT 1 FROM profiles WHERE user_id = $1 AND (COALESCE(cv_text, '') <> '' OR COALESCE(skills, '') <> '')", [session.userId]);
     const counts: Record<string, number> = {};
     for (const f of FUENTES) {
-      const r = await pool.query("SELECT count(*)::int AS n FROM ofertas WHERE fuente = $1", [f]);
+      const r = await pool.query(`SELECT count(DISTINCT ${DUP_KEY})::int AS n FROM ofertas WHERE fuente = $1`, [f]);
       counts[f] = r.rows[0]?.n ?? 0;
     }
-    const remotos = (await pool.query("SELECT count(*)::int AS n FROM ofertas WHERE modalidad = 'remoto'")).rows[0]?.n ?? 0;
+    const remotos = (await pool.query(`SELECT count(DISTINCT ${DUP_KEY})::int AS n FROM ofertas WHERE modalidad = 'remoto'`)).rows[0]?.n ?? 0;
     const topCats = (
-      await pool.query("SELECT categoria, count(*)::int AS n FROM ofertas GROUP BY 1 ORDER BY 2 DESC LIMIT 8")
+      await pool.query(`SELECT categoria, count(DISTINCT ${DUP_KEY})::int AS n FROM ofertas GROUP BY 1 ORDER BY 2 DESC LIMIT 8`)
     ).rows;
     const deptCounts = (
       await pool.query("SELECT departamento, count(*)::int AS n FROM ofertas WHERE departamento <> '' GROUP BY 1 ORDER BY 2 DESC")
