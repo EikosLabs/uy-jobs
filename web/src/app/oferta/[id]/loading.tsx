@@ -1,9 +1,12 @@
+import { ViewTransition } from "react";
+
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-[#faf9f7]">
+    <main className="bg-scene-plain min-h-screen pb-24">
       <div className="mx-auto max-w-5xl animate-pulse px-4 pt-6 sm:px-6">
         <div className="h-4 w-32 rounded bg-stone-200" />
         <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <ViewTransition name="oferta-hero" share="morph" default="none">
           <div className="rounded-2xl border border-[#e7e5e4] bg-white p-9">
             <div className="h-8 w-3/4 rounded bg-stone-200" />
             <div className="mt-3 h-4 w-1/2 rounded bg-stone-100" />
@@ -13,6 +16,7 @@ export default function Loading() {
               <div className="h-4 w-5/6 rounded bg-stone-100" />
             </div>
           </div>
+          </ViewTransition>
           <div className="rounded-2xl border border-[#e7e5e4] bg-white p-6">
             <div className="h-8 w-2/3 rounded bg-stone-200" />
             <div className="mt-4 h-12 rounded-xl bg-stone-100" />

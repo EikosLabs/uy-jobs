@@ -48,7 +48,7 @@ export function MobileMenu({ links, nombre }: { links: NavLink[]; nombre?: strin
         <div className="flex h-16 items-center justify-between px-4">
           <span className="flex items-center gap-2 text-lg font-bold">
             <Image src="/logo.png" alt="" width={32} height={32} className="h-8 w-8 rounded-lg border border-[#e7e5e4]" />
-            <span>Trabajo<span className="text-[#0038a8]">gpt</span></span>
+            <span className="font-[var(--font-display)] tracking-tight">Trabajo<span className="text-[#0038a8]">gpt</span></span>
           </span>
           <button
             onClick={() => setOpen(false)}

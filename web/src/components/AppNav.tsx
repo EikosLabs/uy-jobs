@@ -57,7 +57,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
   );
   return (
     <>
-    <header className="sticky top-0 z-40 border-b border-[#e7e5e4] bg-white">
+    <header className="glass-bar sticky top-0 z-40 border-b">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 sm:gap-2 sm:px-6">
         <Logo />
         {session && (
@@ -104,7 +104,7 @@ export async function AppNav({ active }: { active?: "ofertas" | "mapa" | "postul
     </header>
     {session && (
       <nav aria-label="Secciones principales"
-        className="tabbar fixed inset-x-0 bottom-0 z-40 flex border-t border-[#e7e5e4] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        className="tabbar glass-bar fixed inset-x-0 bottom-0 z-40 flex border-t pb-[env(safe-area-inset-bottom)] md:hidden">
         {tab("/ofertas", "Ofertas", "ofertas", <IconBrief />)}
         {tab("/mapa", "Mapa", "mapa", <IconPin />)}
         {tab("/postulaciones", "Postulaciones", "postulaciones", <IconCheck />)}

@@ -7,9 +7,9 @@ export async function GET() {
   if (!pool) return NextResponse.json({ total: 0, remotos: 0, topCats: [] });
   try {
     const total = (await pool.query(`SELECT count(DISTINCT ${DUP_KEY})::int AS n FROM ofertas`)).rows[0]?.n ?? 0;
-    const remotos = (await pool.query("SELECT count(*)::int AS n FROM ofertas WHERE modalidad = 'remoto'")).rows[0]?.n ?? 0;
+    const remotos = (await pool.query(`SELECT count(DISTINCT ${DUP_KEY})::int AS n FROM ofertas WHERE modalidad = 'remoto'`)).rows[0]?.n ?? 0;
     const topCats = (
-      await pool.query("SELECT categoria, count(*)::int AS n FROM ofertas GROUP BY 1 ORDER BY 2 DESC LIMIT 6")
+      await pool.query(`SELECT categoria, count(DISTINCT ${DUP_KEY})::int AS n FROM ofertas GROUP BY 1 ORDER BY 2 DESC LIMIT 8`)
     ).rows;
     const deptCounts = (
       await pool.query("SELECT departamento, count(*)::int AS n FROM ofertas WHERE departamento <> '' GROUP BY 1 ORDER BY 2 DESC")

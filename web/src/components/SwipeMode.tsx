@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, ViewTransition } from "react";
 import type { Oferta } from "@/lib/supabase";
 import { Chip, CompanyAvatar } from "@/components/ui";
 import { catLabel, fuenteLabel, modalidadLabel, salaryLine, seniorityLabel, tagLabel, ubicacionLabel } from "@/lib/format";
@@ -16,6 +16,8 @@ const SPRING = "transform 420ms cubic-bezier(0.175, 0.885, 0.32, 1.275)"; // vue
 const TAP_PX = 8;
 const PREFETCH_AT = 5; // tarjetas restantes para pedir la página siguiente
 const HINT_KEY = "swipe-hint-v1";
+/** Nombre compartido carta ↔ detalle (único por página: solo la carta de arriba lo lleva). */
+const HERO = "oferta-hero";
 
 type Last = { item: DeckItem; wasSave: boolean; appId: Promise<string | number | null> };
 
@@ -210,7 +212,7 @@ export function SwipeMode({
   }, [current?.id, paint]);
 
   const open = useCallback(() => {
-    if (current) router.push(`/oferta/${current.id}`);
+    if (current) router.push(`/oferta/${current.id}`, { transitionTypes: ["oferta-open"] });
   }, [current, router]);
 
   // Teclado: ← descartar, → guardar, ↑/Enter abrir, Z o Retroceso deshacer.
@@ -347,6 +349,8 @@ export function SwipeMode({
             <CardBody o={next} />
           </div>
         )}
+        {/* al abrir el aviso, esta carta se transforma en la tarjeta del detalle (View Transitions) */}
+        <ViewTransition name={HERO} share="morph" default="none">
         <article
           ref={cardRef}
           onPointerDown={onDown}
@@ -374,11 +378,12 @@ export function SwipeMode({
           <CardBody o={current} />
           <div className="mt-auto flex items-center justify-between border-t border-[#e7e5e4] px-5 py-3">
             <span className="text-xs font-semibold text-[#a8a29e]">Tocá la tarjeta para ver el aviso</span>
-            <Link href={`/oferta/${current.id}`} className="text-sm font-bold text-[#0038a8] hover:underline">
+            <Link href={`/oferta/${current.id}`} transitionTypes={["oferta-open"]} className="text-sm font-bold text-[#0038a8] hover:underline">
               Detalle →
             </Link>
           </div>
         </article>
+        </ViewTransition>
 
         {hint && (
           <button type="button" onClick={dismissHint}

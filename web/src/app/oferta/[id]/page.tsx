@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { notFound } from "next/navigation";
 import { DUP_KEY, getPool } from "@/lib/db";
 import { verifySession } from "@/lib/dal";
-import { AppNav } from "@/components/AppNav";
 import { Chip, CompanyAvatar } from "@/components/ui";
 import { ApplyWidget } from "@/components/ApplyWidget";
 import { CoverLetterWidget } from "@/components/CoverLetterWidget";
@@ -61,12 +61,12 @@ export default async function OfertaPage({
 
   return (
     <main className="bg-scene-plain min-h-screen pb-24">
-      <AppNav active="ofertas" />
       <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
         <Link href="/ofertas" className="text-sm font-bold text-stone-500 hover:text-[#0038a8]">
           ← todas las ofertas
         </Link>
         <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <ViewTransition name="oferta-hero" share="morph" default="none">
           <article className="card p-6 sm:p-9">
             <div className="flex items-start gap-4">
               <CompanyAvatar name={o.empresa} size="lg" />
@@ -141,6 +141,7 @@ export default async function OfertaPage({
               </>
             )}
           </article>
+          </ViewTransition>
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="card p-6">
               <p className="text-xs font-bold uppercase tracking-widest text-stone-400">Tu compatibilidad</p>

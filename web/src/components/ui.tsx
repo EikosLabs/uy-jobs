@@ -16,7 +16,7 @@ export function Logo({ href = "/", size = "md" }: { href?: string; size?: "md" |
     <Link href={href} className="fluid-fast flex items-center gap-2" aria-label="Trabajogpt inicio">
       <Image src="/logo.png" alt="Trabajogpt" width={44} height={44}
         className={`${box} rounded-xl border border-[#e7e5e4] object-cover`} />
-      <span className={`font-bold tracking-tight ${cls}`}>
+      <span className={`font-[var(--font-display)] font-bold tracking-tight ${cls}`}>
         Trabajo<span className="text-[#0038a8]">gpt</span>
       </span>
     </Link>
@@ -210,7 +210,7 @@ export function SiteFooter() {
   const col = "mt-2 flex flex-col items-start gap-1.5 text-sm font-semibold";
   const lnk = "text-[#57534e] hover:text-[#0038a8]";
   return (
-    <footer className="mt-16 border-t border-[#e7e5e4] bg-white py-10">
+    <footer className="mt-16 border-t border-black/5 bg-white/60 py-10 backdrop-blur">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:grid-cols-[1.4fr_1fr_1fr] sm:px-6">
         <div>
           <Logo />
@@ -272,23 +272,26 @@ export function StatusPill({ status }: { status: string }) {
 /** Layout dividido para login/registro: panel marca + formulario. */
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#faf9f7] px-4 py-10">
-      <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white shadow-[var(--shadow-card)] md:grid-cols-[1fr_1.15fr]">
-        <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0038a8] p-8 md:flex">
-          <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 text-[#fcd116] opacity-20">
-            <circle cx="100" cy="100" r="34" fill="currentColor" />
+    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-[28px] border border-black/5 bg-white shadow-[var(--shadow-lift)] md:grid-cols-[1fr_1.15fr]">
+        {/* panel «Sol de Mayo» nocturno, igual que el hero de la landing */}
+        <div className="relative hidden flex-col justify-between overflow-hidden bg-[radial-gradient(26rem_18rem_at_100%_0%,rgba(252,209,22,0.28),transparent_60%),radial-gradient(24rem_18rem_at_0%_100%,rgba(47,111,237,0.45),transparent_65%),linear-gradient(160deg,#0a1d4a,#06122e)] p-9 md:flex">
+          <span aria-hidden className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(252,209,22,0.45),transparent_60%)] blur-md" />
+          <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 animate-[spin_140s_linear_infinite] text-[#fcd116] opacity-40 motion-reduce:animate-none">
+            <circle cx="100" cy="100" r="30" fill="currentColor" opacity="0.6" />
             {Array.from({ length: 16 }).map((_, i) => (
-              <path key={i} d="M100 52 L106 20 L100 8 L94 20 Z" fill="currentColor" transform={`rotate(${i * 22.5} 100 100)`} />
+              <path key={i} d={i % 2 ? "M98 66 L100 6 L102 66 Z" : "M96 66 Q99 40 97 18 L100 12 L103 18 Q101 40 104 66 Z"} fill="currentColor" opacity={i % 2 ? 0.55 : 0.9} transform={`rotate(${i * 22.5} 100 100)`} />
             ))}
           </svg>
           <span className="relative flex items-center gap-2.5">
             <Image src="/logo.png" alt="Trabajogpt" width={36} height={36}
               className="h-9 w-9 rounded-xl border border-white/30 object-cover" />
-            <span className="text-xl font-bold text-white">Trabajogpt</span>
+            <span className="font-[var(--font-display)] text-xl font-bold tracking-tight text-white">Trabajo<span className="text-[#fcd116]">gpt</span></span>
           </span>
           <div className="relative">
-            <p className="text-3xl font-bold leading-10 text-white">
-              Tu próximo trabajo está acá.
+            <p className="font-[var(--font-display)] text-4xl font-bold leading-[1.05] tracking-tight text-white">
+              Tu próximo trabajo{" "}
+              <span className="bg-[linear-gradient(180deg,#ffe680,#fcd116_55%,#f5a524)] bg-clip-text text-transparent">está acá.</span>
             </p>
             <div className="mt-6 space-y-2.5 text-sm font-semibold text-white/90">
               {["Todas las ofertas de Uruguay en un lugar", "Ordenadas por cuánto encajan con tu CV", "Seguimiento de cada postulación"].map((t) => (
@@ -297,7 +300,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
                 </p>
               ))}
             </div>
-            <div aria-hidden className="mt-8 rounded-xl bg-white p-4 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.5)]">
+            <div aria-hidden className="mt-8 rotate-[-2deg] rounded-2xl bg-white p-4 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]">
               <div className="flex items-center gap-3">
                 <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#fef9c3] text-xs font-bold text-[#854d0e]">AD</span>
                 <div className="min-w-0 flex-1">
@@ -308,11 +311,11 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
               </div>
             </div>
           </div>
-          <p className="relative text-xs font-semibold text-white/70">Gratis, para siempre.</p>
+          <p className="relative text-xs font-semibold text-white/60">Gratis, para siempre.</p>
         </div>
         <div className="p-8 sm:p-10">
           <div className="md:hidden"><Logo /></div>
-          <h1 className="mt-4 text-2xl font-bold md:mt-0">{title}</h1>
+          <h1 className="mt-4 font-[var(--font-display)] text-3xl font-bold tracking-tight md:mt-0">{title}</h1>
           <p className="mt-1.5 text-sm font-medium text-stone-600">{subtitle}</p>
           <div className="mt-6">{children}</div>
         </div>
